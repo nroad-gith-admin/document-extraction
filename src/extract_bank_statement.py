@@ -123,6 +123,9 @@ class BankExtraction:
 
                 payroll_amounts, cc_amounts, loan_amounts, deposits, averageBalance, summdata = tableInfoObj.getTableInfo(
                     pdfFile, descriptionCol, depositCol, withdrawCol)
+                if payroll_amounts == 0 and cc_amounts==0 and loan_amounts==0 :
+                    payroll_amounts, cc_amounts, loan_amounts, summdata = tableInfoObj2.getTableInfo(
+                        pdfFile, 1, 2, 2)
 
             elif bankName.lower().strip() == "pnc bank":
                 if pdfFileData != None and os.path.isdir(pdfFileData):
@@ -136,7 +139,6 @@ class BankExtraction:
                                     statementData.extend(json.load(f))
                 else:
                     statementData = extractDataImgObj.get_data(pdfFile, [1,])
-                print(statementData)
 
                 data = dataExtObjPNC.get_classified(statementData)
 
@@ -291,11 +293,11 @@ if __name__=="__main__":
     # obj = BankExtraction()
     # # print(obj.extractBankStatement(pdfFile, 1, 2, 2))
     # ## bad case
-    pdfFile = r"/Users/prasingh/Prashant/Prashant/CareerBuilder/Extraction/data/Batch4/0064O00000k6JjKQAU-00P4O00001JjW22UAF-Jennifer Posey - BS .pdf"
-    pdfFileData = r"/Users/prasingh/Prashant/Prashant/CareerBuilder/Extraction/src/classifier/data/123"
+    pdfFile = r"/Users/prasingh/Prashant/Prashant/CareerBuilder/Extraction/data/Batch4/0064O00000k5zlKQAQ-00P4O00001JkXAtUAN-nichelle_butler_last_60_days_o.pdf"
+    pdfFileData = None
     # # pdfFile = r"/Users/prasingh/Prashant/Prashant/CareerBuilder/Extraction/data/bankstatements/0064O00000jsjGtQAI-00P4O00001Ibc7AUAR-__last_60_days_of_bank_stateme.pdf"
     obj = BankExtraction()
-    print(obj.extractBankStatement(pdfFile, pdfFileData,"wells fargo",[2,3,4,],"wf1"))
+    print(obj.extractBankStatement(pdfFile, pdfFileData,"jpmorgan chase bank",[1,2,2,],"wf1"))
 
     # pdffiles = r"/Users/prasingh/Prashant/Prashant/CareerBuilder/Extraction/data/testingpdf"
     # # print(os.listdir(pdffiles))

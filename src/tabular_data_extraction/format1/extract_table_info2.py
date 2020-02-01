@@ -182,8 +182,8 @@ class TableInfoExtraction2:
 
     def getTableInfo(self, filepath, descriptionCol=1, depositCol=2, withdrawCol=2):
         additionData, deductionData = get_tablular_data(filepath, 3)
-        print(additionData)
-        print(deductionData)
+        # print(additionData)
+        # print(deductionData)
         # data = pd.DataFrame.from_records(data)
         payroll_amounts, cc_amounts, loan_amounts, summdata = self.__getTableInfo__(additionData, deductionData, descriptionCol, depositCol, withdrawCol)
         return payroll_amounts,cc_amounts,loan_amounts,summdata
@@ -196,7 +196,7 @@ if __name__=="__main__":
     filepath  = r'/Users/prasingh/Prashant/Prashant/CareerBuilder/Extraction/data/BankStatementPDF/0064O00000jc6nkQAA-00P4O00001Jjzq1UAB-joseph_allen_last_60_days_of_b.pdf'
     # filepath  = r'/Users/prasingh/Prashant/Prashant/CareerBuilder/Extraction/data/bankstatements/0060B00000iAQfVQAW-00P4O00001Ic6HpUAJ-bryan_niles_last_60_days_of_ba.pdf'
     # filepath  = r'/Users/prasingh/Prashant/Prashant/CareerBuilder/Extraction/data/BankStatements2/006am4O00000aDJ3zQAG-00P4O00001IbjsmUAB-Pat May BS.pdf'
-    filepath  = r'/Users/prasingh/Prashant/Prashant/CareerBuilder/Extraction/data/BS_NT/BS_US_Test/0064O00000jteKqQAI-00P4O00001JkXCuUAN-__last_60_days_of_bank_stateme.pdf'
+    filepath  = r'/Users/prasingh/Prashant/Prashant/CareerBuilder/Extraction/data/Batch4/0064O00000k5zlKQAQ-00P4O00001JkXAtUAN-nichelle_butler_last_60_days_o.pdf'
     payroll_amounts, cc_amounts, loan_amounts, summdata = tableInfoObj.getTableInfo(os.path.join(filepath), 1, 2, 2)
     print("payroll: ",payroll_amounts)
     print("credit card: ",cc_amounts)

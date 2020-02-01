@@ -186,7 +186,6 @@ class TableInfoExtraction:
                     last_data_interated = None
                     for data_index, d in data.iterrows():
                         d1 = df_to_list(d)
-
                         try:
                             for k in self.payroll_keywords:
                                 if fuzz.partial_ratio( k.lower(), d1[descriptionCol].lower())>90:
@@ -297,16 +296,21 @@ if __name__=="__main__":
     # filepath  = r'/Users/prasingh/Prashant/Prashant/CareerBuilder/Extraction/data/BankStatements2/006am4O00000aDJ3zQAG-00P4O00001IbjsmUAB-Pat May BS.pdf'
     filepath  = r'/Users/prasingh/Prashant/Prashant/CareerBuilder/Extraction/data/NEW_BANK/other bank/BB_T BANK/0064O00000k74XZQAY-00P4O00001Jjt9dUAB-Bank Statement.pdf'
     filepath = r"/Users/prasingh/Prashant/Prashant/CareerBuilder/Extraction/data/BS_NT/BS_BOA_Test"
-
-    files = os.listdir(filepath)
-    for i, f in enumerate(files):
-        if ".pdf" in f:
-            print(f)
-            payroll_amounts,cc_amounts,loan_amounts, depositAmount, averageDailyBalance,summdata = tableInfoObj.getTableInfo(os.path.join(filepath,f),1,2,2)
-            # print("payroll: ",payroll_amounts)
-            # print("credit card: ",cc_amounts)
-            # print("loan amounts: ",loan_amounts)
-            print("deposit amount: ", depositAmount)
-            print("average amount: ", averageDailyBalance)
-            print(summdata)
+    filepath = r"/Users/prasingh/Prashant/Prashant/CareerBuilder/Extraction/data/Batch4/0064O00000k5zlKQAQ-00P4O00001JkXAtUAN-nichelle_butler_last_60_days_o.pdf"
+    payroll_amounts, cc_amounts, loan_amounts, depositAmount, averageDailyBalance, summdata = tableInfoObj.getTableInfo(
+        os.path.join(filepath), 1, 2, 2)
+    print("payroll: ",payroll_amounts)
+    print("credit card: ",cc_amounts)
+    print("loan amounts: ",loan_amounts)
+    # files = os.listdir(filepath)
+    # for i, f in enumerate(files):
+    #     if ".pdf" in f:
+    #         print(f)
+    #         payroll_amounts,cc_amounts,loan_amounts, depositAmount, averageDailyBalance,summdata = tableInfoObj.getTableInfo(os.path.join(filepath,f),1,2,2)
+    #         # print("payroll: ",payroll_amounts)
+    #         # print("credit card: ",cc_amounts)
+    #         # print("loan amounts: ",loan_amounts)
+    #         print("deposit amount: ", depositAmount)
+    #         print("average amount: ", averageDailyBalance)
+    #         print(summdata)
 

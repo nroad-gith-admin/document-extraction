@@ -176,7 +176,6 @@ class TableInfoExtraction3:
     def getTableInfo(self, filepath, totalCol, dateCol, desCol, depositCol, withdrawCol, totalAmountsCol, isKeywordsPage, headers, additionKeywords, deductionKeywords):
         additionData, deductionData = get_tablular_data(filepath,totalCol, dateCol, desCol, depositCol, withdrawCol, totalAmountsCol, isKeywordsPage, headers, additionKeywords, deductionKeywords)
         # data = pd.DataFrame.from_records(data)
-        print(additionData,deductionData)
         payroll_amounts, cc_amounts, loan_amounts, summdata = self.__getTableInfo__(additionData, deductionData, 1, 2, 2)
         return payroll_amounts,cc_amounts,loan_amounts,summdata
 
