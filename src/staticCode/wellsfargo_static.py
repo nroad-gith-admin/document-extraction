@@ -24,17 +24,27 @@ class ExtractWellsFargo:
     def get_classified(self, data):
         self.data = data
         self.extractedData = {}
-        accountNum = self.extract_account()
-        if accountNum != None:
-            self.extractedData["ACCOUNTNUM"] = {accountNum: 1}
+        try:
+            accountNum = self.extract_account()
+            if accountNum != None:
+                self.extractedData["ACCOUNTNUM"] = {accountNum: 1}
+        except:
+            pass
 
-        routingNum = self.extract_routing()
-        if routingNum != None:
-            self.extractedData["ROUTINGNUM"] = {routingNum: 1}
+        try:
+            routingNum = self.extract_routing()
+            if routingNum != None:
+                self.extractedData["ROUTINGNUM"] = {routingNum: 1}
+        except:
+            pass
 
-        name = self.extract_name()
-        if name != None:
-            self.extractedData["ACNTHOLDNAME"] = {name: 1}
+        try:
+
+            name = self.extract_name()
+            if name != None:
+                self.extractedData["ACNTHOLDNAME"] = {name: 1}
+        except:
+            pass
 
         self.extractedData["BANKNAME"]  ={"Wells Fargo":1}
         return self.extractedData
@@ -62,6 +72,7 @@ class ExtractWellsFargo:
                 list_data = d.split(" NEWLINE ")
                 list_data = [i for i in list_data if i.strip()!=""]
                 name = list_data[1]
+                break
                 # print(d)
                 # list_data = d.partition(account)[2].split()[1:]
                 # name = []
@@ -107,18 +118,18 @@ class ExtractWellsFargo:
 
 if __name__ == "__main__":
     pathFiles = r"/Users/prasingh/Prashant/Prashant/CareerBuilder/Extraction/data/BS_NT/BS_WF"
-    # files = os.listdir(pathFiles)
-    # for file in files:
-    #     print(file)
-    #     file = os.path.join(pathFiles,file)
-    #     # print(text)
-    #     wellsfargo_obj = ExtractWellsFargo()
-    #     data = wellsfargo_obj.get_classified(file)
-    #     print(data)
-    #     print("----------------------------")
-
-    file = r"0064O00000kBbdOQAS-00P4O00001JkGmEUAV-Victor Lovelace, BS 3.pdf"
-    file = os.path.join(pathFiles, file)
-    wellsfargo_obj = ExtractWellsFargo()
-    data = wellsfargo_obj.get_classified(file)
-    print(data)
+    files = os.listdir(pathFiles)
+    for file in files:
+        print(file)
+        file = os.path.join(pathFiles,file)
+        # print(text)
+        wellsfargo_obj = ExtractWellsFargo()
+        data = wellsfargo_obj.get_classified(file)
+        print(data)
+        print("----------------------------")
+    #
+    # file = r"0064O00000kBbdOQAS-00P4O00001JkGmEUAV-Victor Lovelace, BS 3.pdf"
+    # file = os.path.join(pathFiles, file)
+    # wellsfargo_obj = ExtractWellsFargo()
+    # data = wellsfargo_obj.get_classified(file)
+    # print(data)

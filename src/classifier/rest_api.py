@@ -131,7 +131,7 @@ class REST(tornado.web.RequestHandler):
                             self.set_status(BAD_REQUEST)
 
                         try:
-                            extractedData = extractData(idata["filePath"])
+                            extractedData = extractData(idata["filePath"], idata["documentId"])
                             extractedData["status"] = SUCCESS
                             extractedData["error"] = ""
                             extractedData["documentId"] = idata["documentId"]

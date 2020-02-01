@@ -27,16 +27,26 @@ class ExtractBOA:
     def get_classified(self, data):
         self.data = data
         self.extractedData = {}
-        name,accountNum = self.extract_account()
-        if accountNum != None:
-            self.extractedData["ACCOUNTNUM"] = {accountNum: 1}
+        try:
+            name,accountNum = self.extract_account()
+            if accountNum != None:
+                self.extractedData["ACCOUNTNUM"] = {accountNum: 1}
+        except:
+            pass
 
-        routingNum = self.extract_routing()
-        if routingNum != None:
-            self.extractedData["ROUTINGNUM"] = {routingNum: 1}
+        try:
+            routingNum = self.extract_routing()
+            if routingNum != None:
+                self.extractedData["ROUTINGNUM"] = {routingNum: 1}
 
-        if name != None:
-            self.extractedData["ACNTHOLDNAME"] = {name: 1}
+        except:
+            pass
+
+        try:
+            if name != None:
+                self.extractedData["ACNTHOLDNAME"] = {name: 1}
+        except:
+            pass
 
         self.extractedData["BANKNAME"]  ={"Bank of America":1}
         return self.extractedData

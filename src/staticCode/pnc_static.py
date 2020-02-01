@@ -32,17 +32,27 @@ class ExtractPNC:
 
 
     def get_classified(self, data):
+        # print(data)
         self.data = data
         self.extractedData = {}
-        accountNum = self.extract_account()
-        if accountNum != None:
-            self.extractedData["ACCOUNTNUM"] = {accountNum: 1}
 
-        routingNum = self.extract_routing()
-        if routingNum != None:
-            self.extractedData["ROUTINGNUM"] = {routingNum: 1}
+        try:
+            accountNum,name = self.extract_account()
+            if accountNum != None:
+                self.extractedData["ACCOUNTNUM"] = {accountNum: 1}
+        except:
+            pass
 
-        name = self.extract_name()
+        try:
+
+            routingNum = self.extract_routing()
+            if routingNum != None:
+                self.extractedData["ROUTINGNUM"] = {routingNum: 1}
+        except:
+            pass
+
+        # name = self.extract_name()
+
         if name != None:
             self.extractedData["ACNTHOLDNAME"] = {name: 1}
 
@@ -51,13 +61,17 @@ class ExtractPNC:
 
     def extract_account(self):
         account_number = None
+        name = None
         for d in self.data[:5]:
-            if account in d:
+            if account.lower() in d.lower():
                 d = d.split("NEWLINE")
-                d = [i.strip() for i in d if i.strip()!='' and "Primary Account Number:" in i.strip()]
-                account_number = d[0].replace("Primary Account Number:","").strip()
+                d = [i for i in d if i.strip()!=""]
+                name = d[1]
+                account_number = d[2]
+                # d = [i.strip() for i in d if i.strip()!='' and "Primary Account Number:" in i.strip()]
+                account_number = account_number.lower().replace(account.lower(),"").strip()
                 break
-        return account_number
+        return account_number,name
 
     def extract_routing(self):
         routing_number = None
@@ -125,7 +139,7 @@ if __name__ == "__main__":
     #     print(data)
     #     print("----------------------------")
 
-    file = r"3-31-2017 Operating Statement.pdf"
+    file = r"0064O00000kBOB5QAO-00P4O00001JkMbIUAV-shawn_frick_last_60_days_of_ba.pdf"
     file = os.path.join(pathFiles, file)
     PNC_obj = ExtractPNC()
     data = PNC_obj.get_classified(file)

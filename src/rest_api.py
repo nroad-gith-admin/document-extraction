@@ -129,17 +129,17 @@ class REST(tornado.web.RequestHandler):
                     documents = {}
                     for idata in data['data']:
                         if "documentId" not in idata or "filePath" not in idata or 'bankname' not in idata\
-                                or 'params' not in idata:
-                            logger.error("getExtraction: expect documentId, filePath, bankname and params as key")
+                                or 'params' not in idata or 'dataPath' not in idata:
+                            logger.error("getExtraction: expect documentId, filePath, bankname, dataPath and params as key")
                             response["status"] = BAD_REQUEST
-                            response["reason"] = "Expect documentId, filePath, bankname and params as key"
+                            response["reason"] = "Expect  filePath, dataPath, bankname,  and params as key"
                             print("Expect documentId, filePath, bankname and params as key")
                             self.write(response)
                             self.set_status(BAD_REQUEST)
                         else:
 
                             try:
-                                extractedData = extract(idata["filePath"],idata["bankname"],idata['params'])
+                                extractedData = extract(idata["filePath"], idata['dataPath'],idata["bankname"],idata['params'], idata['documentId'])
                                 extractedData["status"] = SUCCESS
                                 extractedData["error"] = ""
                                 extractedData["documentId"] = idata["documentId"]

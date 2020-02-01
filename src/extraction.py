@@ -7,6 +7,6 @@ try:
 except Exception as e:
     raise Exception("Failed to create BankExtraction object")
 
-def extract(bankstatementLoc, bankstatemntType, params):
-    data = extractobj.extractBankStatement(bankstatementLoc,bankstatemntType, params)
+def extract(bankstatementLoc, pdfDataPath ,bankstatemntType, params, documentId):
+    data = extractobj.extractBankStatement(bankstatementLoc, pdfDataPath, bankstatemntType, params, documentId)
     return data

@@ -13,7 +13,6 @@ from scipy.ndimage import interpolation as inter
 from skimage.transform import hough_line, hough_line_peaks
 from skimage.feature import canny
 from skimage.transform import rotate
-
 # LOG_DIR = "logs"
 # current_dir_path = os.path.dirname(os.path.abspath(__file__))
 # new_path = (os.path.abspath(os.path.join(current_dir_path, os.pardir)))
@@ -202,10 +201,10 @@ class ImageTextExtractor:
         new_c_info = []
         for c in c_info:
             new_crop = c
-            if self.check_if_exists_in_array(c, new_c_info):
-                continue
-            else:
-                new_c_info.append(new_crop)
+            # if self.check_if_exists_in_array(c, new_c_info):
+            #     continue
+            # else:
+            new_c_info.append(new_crop)
         new_c_info = [(c["x1"],c["y1"],c["x2"],c["y2"]) for c in new_c_info]
         return new_c_info
         # except Exception as e:
@@ -410,7 +409,9 @@ class ImageTextExtractor:
             greyScale_image = orig_im.convert('L')
             array_image = np.asarray(greyScale_image)
             array_image = array_image / 255
+
             deskewed_img = self.deskew(array_image)
+
             if deskewed_img is None:
                 deskewed_img = array_image
             after_deskew_img = Image.fromarray(np.uint8(deskewed_img * 255), 'L')

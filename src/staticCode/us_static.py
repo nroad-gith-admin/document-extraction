@@ -28,17 +28,27 @@ class ExtractUS:
     def get_classified(self, data):
         self.data = data
         self.extractedData = {}
-        accountNum = self.extract_account()
-        if accountNum != None:
-            self.extractedData["ACCOUNTNUM"] = {accountNum: 1}
+        try:
+            accountNum = self.extract_account()
+            if accountNum != None:
+                self.extractedData["ACCOUNTNUM"] = {accountNum: 1}
+        except:
+            pass
 
-        routingNum = self.extract_routing()
-        if routingNum != None:
-            self.extractedData["ROUTINGNUM"] = {routingNum: 1}
+        try:
+            routingNum = self.extract_routing()
+            if routingNum != None:
+                self.extractedData["ROUTINGNUM"] = {routingNum: 1}
+        except:
+            pass
 
-        name = self.extract_name()
-        if name != None:
-            self.extractedData["ACNTHOLDNAME"] = {name: 1}
+        try:
+            name = self.extract_name()
+            if name != None:
+                self.extractedData["ACNTHOLDNAME"] = {name: 1}
+
+        except:
+            pass
 
         self.extractedData["BANKNAME"]  ={"US Bank":1}
         return self.extractedData

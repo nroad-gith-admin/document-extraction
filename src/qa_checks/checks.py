@@ -66,7 +66,7 @@ def check_all(data):
     data["CCPaymentsStatus"] = check_specific(data["CCPayments"])
     data["loanPaymentsStatus"] = check_specific(data["loanPayments"])
     data["directDepositsStatus"] = check_specific(data["directDeposits"])
-    data["uniqueIdStatus"] = check_uniqueid(data["uniqueId"])
+    # data["uniqueIdStatus"] = check_uniqueid(data["uniqueId"])
     data["docStatus"] = checkfield(data["accountNumber"], data["nameOnTheAccount"], data["directDeposits"] )
 
     return data

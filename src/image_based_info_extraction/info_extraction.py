@@ -25,7 +25,9 @@ class TableInfoExtractionImage:
             self.deposits =[str(i[5]).strip() for i in keywordList if str(i[5]) !='nan']
             self.deposits = list(set(self.deposits))
 
-            # print(self.deposits)
+            self.average_daily_balance = [str(i[8]).strip() for i in keywordList if str(i[8]) != 'nan']
+            self.average_daily_balance = list(set(self.average_daily_balance))
+            # print(self.average_daily_balance)
         except Exception as e:
             raise Exception("Failed to extract values for payroll_keywords, cc_keywords, loan_keywords. Reason: "+str(e))
     def checkMoney(self, val):
@@ -53,6 +55,7 @@ class TableInfoExtractionImage:
 
     def getTableInfo(self, data):
         depositAmount = 0
+        avgDailyBalance = 0
         try:
             for data_index, d in enumerate(data):
                 d1 =re.sub(' +', ' ',d.replace("NEWLINE",""))
@@ -61,17 +64,30 @@ class TableInfoExtractionImage:
 
                     for k in self.deposits:
                         if  k.lower() in d1.lower():
-                            d1 = d1.lower().replace(k.lower(),"").strip()
+                            d1 = d1.lower().partition(k.lower())
+                            d1 = [i for i in d1 if i.strip()!='']
+                            d1 = d1[d1.index(k.lower())+1]
+                            d1 = d1.split()[0]
+
                             if self.checkMoney(d1) == True:
                                 depositAmount = self.__format_amount__((d1))
                                 break
+                    for k in self.average_daily_balance:
+                        if  k.lower() in d1.lower():
+                            d1 = d1.lower().partition(k.lower())
+                            d1 = [i for i in d1 if i.strip()!='']
+                            d1 = d1[d1.index(k.lower())+1]
+                            d1 = d1.split()[0]
 
+                            if self.checkMoney(d1) == True:
+                                avgDailyBalance = self.__format_amount__((d1))
+                                break
 
                 except IndexError as e:
                     pass
         except Exception as e:
             raise Exception("Something messed up. Reason: "+str(e))
-        return  depositAmount
+        return  depositAmount, avgDailyBalance
 
 if __name__=="__main__":
     tableInfoObj = TableInfoExtractionImage()

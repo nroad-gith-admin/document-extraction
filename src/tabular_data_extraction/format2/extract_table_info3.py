@@ -6,18 +6,18 @@ sys.path.insert(0, curpath)
 
 import xlrd
 import pandas as pd
-from utils import *
+from utils3 import *
 import numpy as np
 import re
 import os
 from fuzzywuzzy import fuzz
-from get_tabular_data import get_tablular_data
+from get_tabular_data3 import get_tablular_data
 
 
-class TableInfoExtraction2:
+class TableInfoExtraction3:
 
     def __init__(self):
-        keywordListFol = os.path.join(os.path.dirname(os.path.realpath(__file__)), ".." ,"..","data", "Keywords_BS.XLSX")
+        keywordListFol = os.path.join(os.path.dirname(os.path.realpath(__file__)), ".." ,"..","..","data", "Keywords_BS.XLSX")
         if os.path.isfile(keywordListFol) == False:
             raise Exception("Keyword List file not found in the directory: "+str(keywordListFol))
 
@@ -68,7 +68,7 @@ class TableInfoExtraction2:
 
 
 
-    def __getTableInfo__(self, data, descriptionCol, depositCol, withdrawCol):
+    def __getTableInfo__(self, additionData, deductionData, descriptionCol, depositCol, withdrawCol):
         payroll_amounts = []
         cc_amounts = []
         loan_amounts = []
@@ -78,9 +78,13 @@ class TableInfoExtraction2:
         summdata["payroll"]={}
         summdata["credit card"]={}
         summdata["loan"]={}
-
+        data = []
+        data.extend(additionData)
+        data.extend(deductionData)
+        data = pd.DataFrame.from_records(additionData)
         for data_index, d in (data.iterrows()):
             d1 = d
+            # print(d1[descriptionCol])
             try:
                 for k in self.payroll_keywords:
                     if fuzz.partial_ratio( k.lower(), d1[descriptionCol].lower())>90:
@@ -89,17 +93,25 @@ class TableInfoExtraction2:
                             if not re.search(r"\b" + k.lower() + r"\b", d1[descriptionCol].lower()):
                                 if False in ratios:
                                     continue
+                        if fuzz.partial_ratio(k.lower(), d1[descriptionCol].lower()) == 100:
+                            if not re.search(r"\b" + k.lower() + r"\b", d1[descriptionCol].lower()):
+                                continue
                         if data_index>0 and len(data.iloc[[data_index-1]]) ==len(data.iloc[[data_index]]) and d1[depositCol]=='' and d1[withdrawCol]=='':
                             backD1 = d1
                             d1 = last_data_interated
                         payroll_amounts.append(self.__format_amount__(d1[depositCol]))
                         try:
-                            summdata["payroll"][d1[descriptionCol]+" "+backD1[descriptionCol]] = [k,self.__format_amount__(d1[depositCol])]
+                            summdata["payroll"][d1[descriptionCol]+" "+backD1[descriptionCol]+" "+str(data_index)] = [k,self.__format_amount__(d1[depositCol])]
                         except:
-                            summdata["payroll"][d1[descriptionCol]] = [k,self.__format_amount__(d1[depositCol])]
+                            summdata["payroll"][d1[descriptionCol]+" "+str(data_index)] = [k,self.__format_amount__(d1[depositCol])]
 
                         break
-
+            except IndexError as e:
+                pass
+        data = pd.DataFrame.from_records(deductionData)
+        for data_index, d in (data.iterrows()):
+            d1 = d
+            try:
                 for k in self.cc_keywords:
                     d1[descriptionCol] = d1[descriptionCol].replace("xxxxx", " ")
 
@@ -109,14 +121,17 @@ class TableInfoExtraction2:
                             if not re.search(r"\b" + k.lower() + r"\b", d1[descriptionCol].lower()):
                                 if False in ratios:
                                     continue
+                        if fuzz.partial_ratio(k.lower(), d1[descriptionCol].lower()) == 100:
+                            if not re.search(r"\b" + k.lower() + r"\b", d1[descriptionCol].lower()):
+                                continue
                         if data_index>0 and len(data.iloc[[data_index-1]]) ==len(data.iloc[[data_index]]) and d1[depositCol]=='' and d1[withdrawCol]=='':
                             backD1 = d1
                             d1 = last_data_interated
                         cc_amounts.append(self.__format_amount__(d1[withdrawCol]))
                         try:
-                            summdata["credit card"][d1[descriptionCol]+" "+backD1[descriptionCol]] = [k,self.__format_amount__(d1[withdrawCol])]
+                            summdata["credit card"][d1[descriptionCol]+" "+backD1[descriptionCol]+" "+str(data_index)] = [k,self.__format_amount__(d1[withdrawCol])]
                         except:
-                            summdata["credit card"][d1[descriptionCol]] = [k,self.__format_amount__(d1[withdrawCol])]
+                            summdata["credit card"][d1[descriptionCol]+" "+str(data_index)] = [k,self.__format_amount__(d1[withdrawCol])]
 
                         # print(d1)
                         break
@@ -130,61 +145,67 @@ class TableInfoExtraction2:
                             if not re.search(r"\b" + k.lower() + r"\b", d1[descriptionCol].lower()):
                                 if False in ratios:
                                     continue
+                        if fuzz.partial_ratio(k.lower(), d1[descriptionCol].lower()) == 100:
+                            if not re.search(r"\b" + k.lower() + r"\b", d1[descriptionCol].lower()):
+                                continue
                         if data_index>0 and len(data.iloc[[data_index-1]]) ==len(data.iloc[[data_index]]) and d1[depositCol]=='' and d1[withdrawCol]=='':
                             backD1 = d1
 
                             d1 = last_data_interated
                         loan_amounts.append(self.__format_amount__(d1[withdrawCol]))
                         try:
-                            summdata["loan"][d1[descriptionCol]+" "+backD1[descriptionCol]] = [k,self.__format_amount__(d1[withdrawCol])]
+                            summdata["loan"][d1[descriptionCol]+" "+backD1[descriptionCol]+" "+str(data_index)] = [k,self.__format_amount__(d1[withdrawCol])]
                         except:
-                            summdata["loan"][d1[descriptionCol]] = [k,self.__format_amount__(d1[withdrawCol])]
+                            summdata["loan"][d1[descriptionCol]+" "+str(data_index)] = [k,self.__format_amount__(d1[withdrawCol])]
 
                         break
-
-                for k in self.average_daily_balance:
-                    for dii, di in enumerate(d):
-                        if di!=None:
-                            if re.search(r"\b" + k.lower() + r"\b", di.lower()):
-                                averageBalanceD1 = [i.lower().strip() for i in d1 if i.strip() != '']
-                                averageBalance = averageBalanceD1[averageBalanceD1.index(k.lower())+1]
-                                break
-
-
 
 
             except IndexError as e:
                 pass
 
+
+
+
+
         payroll_amounts = sum(payroll_amounts)
         cc_amounts = sum(cc_amounts)
         loan_amounts = sum(loan_amounts)
-        # print(summdata)
-        return payroll_amounts,cc_amounts,loan_amounts, depositAmount, averageBalance,summdata
+        return payroll_amounts,cc_amounts,loan_amounts, summdata
 
-    def getTableInfo(self, filepath, descriptionCol=1, depositCol=2, withdrawCol=2):
-        data = get_tablular_data(filepath)
-        data = pd.DataFrame.from_records(data)
-        payroll_amounts, cc_amounts, loan_amounts, depositAmount, averageBalance, summdata = self.__getTableInfo__(data, descriptionCol, depositCol, withdrawCol)
-        return payroll_amounts,cc_amounts,loan_amounts, depositAmount, averageBalance,summdata
+    def getTableInfo(self, filepath, totalCol, dateCol, desCol, depositCol, withdrawCol, totalAmountsCol, isKeywordsPage, headers, additionKeywords, deductionKeywords):
+        additionData, deductionData = get_tablular_data(filepath,totalCol, dateCol, desCol, depositCol, withdrawCol, totalAmountsCol, isKeywordsPage, headers, additionKeywords, deductionKeywords)
+        # data = pd.DataFrame.from_records(data)
+        print(additionData,deductionData)
+        payroll_amounts, cc_amounts, loan_amounts, summdata = self.__getTableInfo__(additionData, deductionData, 1, 2, 2)
+        return payroll_amounts,cc_amounts,loan_amounts,summdata
 
 
 
 if __name__=="__main__":
-    tableInfoObj = TableInfoExtraction2()
+    tableInfoObj = TableInfoExtraction3()
+    additionKeywords, deductionKeywords = ["Transaction history", "Transaction history (continued)"], []
+    headers = [["Date", "number", "description", "additions", "subtractions", "balance"],]
+    # filepath r""
+    # print(os.path.join(filepath, file))
+    # filepath = r"/Users/prasingh/Prashant/Prashant/CareerBuilder/Extraction/data/BS_NT/BS_WF/0064O00000k6B5kQAE-00P4O00001JkfySUAR-brett_costa_last_60_days_of_ba.pdf"
+    # a, d = get_tablular_data(os.path.join(filepath, file), None, dateCol=0, desCol=2, depositCol=-3, withdrawCol=-2,
+    #                          totalAmountsCol=3, isKeywordsPage=True, headers=headers, additionKeywords=additionKeywords,
+    #                          deductionKeywords=deductionKeywords)
 
-    filepath  = r'/Users/prasingh/Prashant/Prashant/CareerBuilder/Extraction/data/BankStatementPDF/0064O00000jc6nkQAA-00P4O00001Jjzq1UAB-joseph_allen_last_60_days_of_b.pdf'
+    # filepath  = r'/Users/prasingh/Prashant/Prashant/CareerBuilder/Extraction/data/BankStatementPDF/0064O00000jc6nkQAA-00P4O00001Jjzq1UAB-joseph_allen_last_60_days_of_b.pdf'
     # filepath  = r'/Users/prasingh/Prashant/Prashant/CareerBuilder/Extraction/data/bankstatements/0060B00000iAQfVQAW-00P4O00001Ic6HpUAJ-bryan_niles_last_60_days_of_ba.pdf'
     # filepath  = r'/Users/prasingh/Prashant/Prashant/CareerBuilder/Extraction/data/BankStatements2/006am4O00000aDJ3zQAG-00P4O00001IbjsmUAB-Pat May BS.pdf'
-    filepath  = r'/Users/prasingh/Prashant/Prashant/CareerBuilder/Extraction/data/BS_NT/BS_US/0064O00000jteKqQAI-00P4O00001JkXCuUAN-__last_60_days_of_bank_stateme.pdf'
+    # filepath  = r'/Users/prasingh/Prashant/Prashant/CareerBuilder/Extraction/data/BS_NT/BS_WF/0064O00000k6B5kQAE-00P4O00001JkfySUAR-brett_costa_last_60_days_of_ba.pdf'
+    filepath  = r'/Users/prasingh/Prashant/Prashant/CareerBuilder/Extraction/data/BS_NT/BS_WF/0064O00000k6B5kQAE-00P4O00001JkfySUAR-brett_costa_last_60_days_of_ba.pdf'
     import pandas as pd
     # df = pd.DataFrame.from_records(data)
-    payroll_amounts,cc_amounts,loan_amounts, depositAmount, averageDailyBalance,summdata = tableInfoObj.getTableInfo(filepath,1, 2, 2 )
+    payroll_amounts,cc_amounts,loan_amounts,summdata = tableInfoObj.getTableInfo(filepath, None, dateCol=0, desCol=2, depositCol=-3, withdrawCol=-2,
+                             totalAmountsCol=3, isKeywordsPage=True, headers=headers, additionKeywords=additionKeywords,
+                             deductionKeywords=deductionKeywords )
     print("payroll: ",payroll_amounts)
     print("credit card: ",cc_amounts)
     print("loan amounts: ",loan_amounts)
-    print("deposit amount: ", depositAmount)
-    print("average amount: ", averageDailyBalance)
     print(summdata)
 
 

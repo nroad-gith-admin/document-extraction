@@ -7,10 +7,11 @@ from table_extrator_camelot import TableExtractorCamelot
 from PyPDF2 import PdfFileReader
 from utils import *
 import numpy as np
-from statistics import mode
 from collections import Counter
 
 tableCamelotObj = TableExtractorCamelot()
+
+
 
 def most_common(List):
     commons = []
@@ -20,8 +21,9 @@ def most_common(List):
         if float(v/maxV)*100 > 80:
             commons.append(k)
     return commons
-def get_tablular_data(filepath):
-    tableData = []
+def get_tablular_data(filepath, totalCol):
+    additionTable = []
+    deductionTable = []
     try:
         pdf = PdfFileReader(open(filepath, 'rb'))
     except Exception as e:
@@ -80,20 +82,29 @@ def get_tablular_data(filepath):
                 data = data.drop(ind, axis=1)
 
             data = data.values.tolist()
-            data =  get_all_formatted(data)
-            tableData.extend(data)
-    lens = [len(i) for i in tableData]
+            additionData, deductionData =  get_all_formatted(data)
+            if len(additionData)>0:
+                additionTable.extend(additionData)
+            if len(deductionData)>0:
+                deductionTable.extend(deductionData)
+    lens = [len(i) for i in additionTable]
 
     if len(lens)>0:
         mostCom = most_common(lens)
-        tableData = [i for i in tableData if len(i)in mostCom ]
+        additionTable = [i for i in additionTable if len(i)in mostCom or len(i)==totalCol]
 
-    return tableData
+    lens = [len(i) for i in deductionTable]
+
+    if len(lens) > 0:
+        mostCom = most_common(lens)
+        dedctionTable = [i for i in deductionTable if len(i) in mostCom or len(i)==totalCol]
+
+    return additionTable, deductionTable
 
 
 if __name__=="__main__":
     filepath = r"/Users/prasingh/Prashant/Prashant/CareerBuilder/Extraction/data/BS_NT/BS_US/0064O00000jteKqQAI-00P4O00001JkXBcUAN-__last_60_days_of_bank_stateme.pdf"
-    filepath = r"/Users/prasingh/Prashant/Prashant/CareerBuilder/Extraction/data/BS_NT/BS_BOA/0064O00000k7RiOQAU-00P4O00001KTl0PUAT-__last_60_days_of_bank_stateme.pdf"
+    filepath = r"/Users/prasingh/Prashant/Prashant/CareerBuilder/Extraction/data/BS_NT/BS_JPMC/0064O00000kKWoeQAG-00P4O00001KS1zpUAD-Bank Statement.pdf"
     # filepath = r"/Users/prasingh/Prashant/Prashant/CareerBuilder/Extraction/data/BS_NT/BS_Citi/0064O00000aDmSjQAK-00P4O00001JkSvIUAV-chetrum BS.pdf"
     # filepath = r"/Users/prasingh/Prashant/Prashant/CareerBuilder/Extraction/data/BS_NT/BS_Citi/0064O00000aDmSjQAK-00P4O00001JkSvIUAV-chetrum BS.pdf"
     # filepath = r"/Users/prasingh/Prashant/Prashant/CareerBuilder/pdftablereader/Bank_Statement_Parser/BankStatementParser/main/TableExtractor/bank_statements/PNCBANK_back/t/10915568605217091500/4-28-2017 Operating Statement.pdf"
@@ -107,6 +118,8 @@ if __name__=="__main__":
     #     #     print(i,list(d))
     #     for d in (get_all_formatted(data)):
     #         print(d)
-    d = get_tablular_data(filepath)
-    for  i in d:
-        print(i)
+    a,d = get_tablular_data(filepath,4)
+    print(a)
+    print(d)
+    # for  i in d:
+    #     print(i)

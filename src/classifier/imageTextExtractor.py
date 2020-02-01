@@ -460,7 +460,9 @@ class ImageTextExtractor:
 
                     # print(img_txt)
                     # print("---------------")
-                    text_segments.append(" ".join(img_txt))
+                    # text_segments.append(" ".join(img_txt))
+                    text_segments.append(" NEWLINE ".join(img_txt))
+
             # text_img = "\n\n\n".join(text_segments)
             # text_segments = text_img.split("\n\n\n")
             # text_segments = [t.strip() for t in text_segments if len(t.strip())]

@@ -30,13 +30,17 @@ class ExtractDataImage:
                     except Exception as e:
                         print(e)
 
-            pages = convert_from_path(filepath)
-            for pgn, page in enumerate(pages):
-                # print(page)
-                if pgn in pagenum:
-                    newfilename_temp = str(pgn) + ".jpg"
-                    page.save(os.path.join("working", newfilename_temp), 'JPEG')
-                    path_img.append(os.path.join("working", newfilename_temp))
+            if ".jpg" in filepath or ".png" in filepath or ".jpeg" in filepath:
+                path_img.append(filepath)
+            else:
+                pages = convert_from_path(filepath)
+                for pgn, page in enumerate(pages):
+                    if pgn in pagenum:
+                        newfilename_temp = str(pgn) + ".jpg"
+                        page.save(os.path.join("working", newfilename_temp), 'JPEG')
+                        path_img.append(os.path.join("working", newfilename_temp))
+
+
             contents_pdf = []
 
             for imagefiles in path_img:
@@ -62,7 +66,12 @@ class ExtractDataImage:
 
 if __name__=="__main__":
     tableInfoObj = ExtractDataImage()
-    filepath  = r'/Users/prasingh/Prashant/Prashant/CareerBuilder/Extraction/data/BS_NT/BS_PNC/3-31-2017 Operating Statement.pdf'
-    data= tableInfoObj.get_data(filepath,[0,1,])
-    print("deposit amount: ", data)
+    # filepath  = r'/Users/prasingh/Prashant/Prashant/CareerBuilder/Extraction/data/BS_NT/BS_PNC/0064O00000kBOB5QAO-00P4O00001JkMbmUAF-shawn_frick_last_60_days_of_ba.pdf'
+    files = r"/Users/prasingh/Prashant/Prashant/CareerBuilder/Extraction/data/BS_NT/BS_PNC"
+    fileslist = os.listdir(files)
+    for filepath in fileslist:
+        filepath = os.path.join(files,filepath)
+        data= tableInfoObj.get_data(filepath,[0,1,])
+        print(data)
+        break
 
