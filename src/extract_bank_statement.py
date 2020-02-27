@@ -6,7 +6,8 @@ curpath = os.path.join(os.path.dirname(os.path.realpath(__file__)))
 sys.path.insert(0, curpath)
 
 from image_data_extraction.get_data_image import ExtractDataImage
-from extract_table_info import TableInfoExtraction
+from tabular_info_extraction.boa_extraction_summary import BOAExtractSum
+from tabular_info_extraction.boa_table_info import TableBOAInfoExtraction
 from image_based_info_extraction.info_extraction import TableInfoExtractionImage
 from staticCode.wellsfargo_static import ExtractWellsFargo
 from staticCode.boa_static import ExtractBOA
@@ -24,9 +25,10 @@ dataExtObjJpmc = ExtractJPMC()
 dataExtObjPNC = ExtractPNC()
 dataExtObjUS = ExtractUS()
 tableInfoExtImg = TableInfoExtractionImage()
-tableInfoObj = TableInfoExtraction()
+tableInfoObjBOA = TableBOAInfoExtraction()
 tableInfoObj2 = TableInfoExtraction2()
 tableInfoObj3 = TableInfoExtraction3()
+boaSummaryExtraction = BOAExtractSum()
 
 
 class BankExtraction:
@@ -70,7 +72,7 @@ class BankExtraction:
                 else:
                     statementData = extractDataImgObj.get_data(pdfFile, [0, 1])
                 data = dataExtObj.get_classified(statementData)
-                payroll_amounts, cc_amounts, loan_amounts, deposits, averageBalance, summdata = tableInfoObj.getTableInfo(
+                _, _, _, deposits, averageBalance, _ = tableInfoObj.getTableInfo(
                     pdfFile, descriptionCol, depositCol, withdrawCol)
                 additionKeywords, deductionKeywords = ["Transaction history", "Transaction history (continued)"], []
                 headers1 = ["Date", "number", "description", "additions", "subtractions", "balance"]
@@ -103,8 +105,8 @@ class BankExtraction:
 
                 payroll_amounts, cc_amounts, loan_amounts,summdata = tableInfoObj2.getTableInfo(
                     pdfFile, 1, 2, 2)
-
-                _, _, _, deposits, averageBalance, _ = tableInfoObj.getTableInfo(
+                employerNames, employeeName, ccProviders = boaSummaryExtraction.extract_summ_info(summdata)
+                _, _, _, deposits, averageBalance,begBalance, endBalance, withdrawAmounts, endDate, accounttype, _ = tableInfoObjBOA.getTableInfo(
                     pdfFile, descriptionCol, depositCol, withdrawCol)
 
             elif bankName.lower().strip() == "jpmorgan chase bank":
@@ -221,6 +223,16 @@ class BankExtraction:
             if deposits ==0:
                 deposits = -9999.99
 
+
+            BankData["begBalance"] = begBalance
+            BankData["endBalance"] = endBalance
+            BankData["ToDate"] = endDate
+            BankData["totalWithdraw"] = withdrawAmounts
+            BankData["accountType"] = accounttype
+            BankData["EmployeeNames"] = employeeName
+            BankData["EmployersName"] = employerNames
+            BankData["CCProviders"] = ccProviders
+
             BankData["averageDailyBalance"] = averageBalance
             BankData["loanDeposits"] = -9999.99
             BankData["payrollDeposits"] = (payroll_amounts)
@@ -293,11 +305,11 @@ if __name__=="__main__":
     # obj = BankExtraction()
     # # print(obj.extractBankStatement(pdfFile, 1, 2, 2))
     # ## bad case
-    pdfFile = r"/Users/prasingh/Prashant/Prashant/CareerBuilder/Extraction/data/Batch4/0064O00000k5zlKQAQ-00P4O00001JkXAtUAN-nichelle_butler_last_60_days_o.pdf"
-    pdfFileData = None
+    pdfFile = r"/Users/prasingh/Prashant/Prashant/CareerBuilder/Extraction/data/BS_NT/BS_BOA/0064O00000kIl2CQAS-00P4O00001KUc6QUAT-dwayne_foster_last_60_days_of_.pdf"
+    pdfFileData = "/Users/prasingh/Prashant/Prashant/CareerBuilder/ExtractionCode/src/classifier/data/0064O00000kIl2CQAS-00P4O00001KUc6QUAT-dwayne_foster_last_60_days_of_"
     # # pdfFile = r"/Users/prasingh/Prashant/Prashant/CareerBuilder/Extraction/data/bankstatements/0064O00000jsjGtQAI-00P4O00001Ibc7AUAR-__last_60_days_of_bank_stateme.pdf"
     obj = BankExtraction()
-    print(obj.extractBankStatement(pdfFile, pdfFileData,"jpmorgan chase bank",[1,2,2,],"wf1"))
+    print(obj.extractBankStatement(pdfFile, pdfFileData,"bank of america",[1,2,2,],"boa1"))
 
     # pdffiles = r"/Users/prasingh/Prashant/Prashant/CareerBuilder/Extraction/data/testingpdf"
     # # print(os.listdir(pdffiles))

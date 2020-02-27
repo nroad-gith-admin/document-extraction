@@ -1,3 +1,8 @@
+import sys, os
+
+curpath = os.path.join(os.path.dirname(os.path.realpath(__file__)))
+sys.path.insert(0, curpath)
+
 import xlrd
 import pandas as pd
 from table_extrator_camelot import TableExtractorCamelot
@@ -10,7 +15,7 @@ from fuzzywuzzy import fuzz
 
 
 
-class TableInfoExtraction:
+class TableBOAInfoExtraction:
     def isDate(self,val):
         val = val.lower()
         if re.search(r"\b" + "jan" + r"\b", val) or \
@@ -49,7 +54,7 @@ class TableInfoExtraction:
         return False
     def __init__(self):
 
-        keywordListFol = os.path.join(os.path.dirname(os.path.realpath(__file__)),  "..","data", "Keywords_BS.XLSX")
+        keywordListFol = os.path.join(os.path.dirname(os.path.realpath(__file__)),  "..","..","data", "Keywords_BS.XLSX")
         if os.path.isfile(keywordListFol) == False:
             raise Exception("Keyword List file not found in the directory: "+str(keywordListFol))
 
@@ -64,31 +69,18 @@ class TableInfoExtraction:
             raise Exception("Failed to read the keyword list file. Reason: "+str(e))
 
         try:
-            self.additionData = []
-            self.deductionData = []
-            self.creditData = []
-            self.additionKeywords = ['Additions',
-                         "Deposits",
-                         "Refunds",
-                         ]
-            self.deductionKeywords = ["Deductions",
-                                      "Purchases",
-                                      "Service Charges and Fees",
 
-                                      ]
-            self.payroll_keywords = [i[0] for i in keywordList if str(i[0]) !='nan']
-            self.payroll_keywords = list(set(self.payroll_keywords))
-            self.cc_keywords = [i[2] for i in keywordList if str(i[2]) !='nan']
-            self.cc_keywords = list(set(self.cc_keywords))
-
-            self.loan_keywords =[str(i[4]) for i in keywordList if str(i[4]) !='nan']
-            self.loan_keywords = list(set(self.loan_keywords))
 
             self.deposits =[str(i[5]).strip() for i in keywordList if str(i[5]) !='nan']
             self.deposits = list(set(self.deposits))
 
             self.average_daily_balance = [str(i[8]).strip() for i in keywordList if str(i[8]) != 'nan']
             self.average_daily_balance = list(set(self.average_daily_balance))
+
+            self.begBalanceKey = ["Beginning balance on",]
+            self.endBalanceKey = ["Ending balance on"]
+            self.withdrawlKey = ["ATM and debit card subtractions","Other subtractions","Checks","Service fees"]
+            self.accountTypeKey = ["Your,Banking","Your,account"]
             # print(self.payroll_keywords)
         except Exception as e:
             raise Exception("Failed to extract values for payroll_keywords, cc_keywords, loan_keywords. Reason: "+str(e))
@@ -114,16 +106,38 @@ class TableInfoExtraction:
         except:
             return 0
 
+    def isAmount(self, val):
+        val = val.lower()
+        val = val.replace("$", '')
+        val = val.replace("-", '')
+        val = val.replace(",", '')
+
+        if "." in val:
+            splitVal = val.split(".")
+            splitVal = [i.strip() for i in splitVal if i.strip() != '']
+            boolIsDigits = [i.isdigit() for i in splitVal]
+            if False in boolIsDigits:
+                return False
+            return True
+        return False
+
+    def extractAmount(self, val):
+        val = val.lower()
+        val = val.replace("$", '')
+        val = val.replace("-", '')
+        val = val.replace(",", '')
+
+        return val
+
     def getTableInfo(self, filepath, descriptionCol, depositCol, withdrawCol,edge_tol=85):
-        payroll_amounts = []
-        cc_amounts = []
-        loan_amounts = []
         depositAmount = 0
         averageBalance = 0
-        summdata= {}
-        summdata["payroll"]={}
-        summdata["credit card"]={}
-        summdata["loan"]={}
+        begBalance = 0
+        endBalance = 0
+        endDate = ""
+        withdrawlBalances = []
+        accountType = {}
+
         try:
             pdf = PdfFileReader(open(filepath, 'rb'))
         except Exception as e:
@@ -172,8 +186,6 @@ class TableInfoExtraction:
                     tables = list(set(new_t))
 
                 for table_i in range(len(tables)):
-                    addition_flag = 0
-                    deduction_flag = 0
                     data = tables[table_i].df
                     data = data.applymap(clean_pandas)
                     d = data.replace(r'^\s*$', np.nan, regex=True)
@@ -187,73 +199,7 @@ class TableInfoExtraction:
                     for data_index, d in data.iterrows():
                         d1 = df_to_list(d)
                         try:
-                            for k in self.payroll_keywords:
-                                if fuzz.partial_ratio( k.lower(), d1[descriptionCol].lower())>90:
-                                    if len(k.split()) >=2:
-                                        ratios = [fuzz.partial_ratio(kth.lower(), d1[descriptionCol].lower())>90 for kth in k.split()]
-                                        if not re.search(r"\b" + k.lower() + r"\b", d1[descriptionCol].lower()):
-                                            if False in ratios:
-                                                continue
-                                    if fuzz.partial_ratio( k.lower(), d1[descriptionCol].lower())==100:
-                                        if not re.search(r"\b" + k.lower() + r"\b", d1[descriptionCol].lower()):
-                                            continue
-                                    if data_index>0 and len(data.iloc[[data_index-1]]) ==len(data.iloc[[data_index]]) and d1[depositCol]=='' and d1[withdrawCol]=='':
-                                        backD1 = d1
-                                        d1 = last_data_interated
-                                    payroll_amounts.append(self.__format_amount__(d1[depositCol]))
-                                    try:
-                                        summdata["payroll"][d1[descriptionCol]+" "+backD1[descriptionCol]] = [k,self.__format_amount__(d1[depositCol])]
-                                    except:
-                                        summdata["payroll"][d1[descriptionCol]] = [k,self.__format_amount__(d1[depositCol])]
 
-                                    break
-
-                            for k in self.cc_keywords:
-                                d1[descriptionCol] = d1[descriptionCol].replace("xxxxx", " ")
-
-                                if fuzz.partial_ratio(k.lower(), d1[descriptionCol].lower()) > 90:
-                                    if len(k.split()) >=2:
-                                        ratios = [fuzz.partial_ratio(kth.lower(), d1[descriptionCol].lower())>90 for kth in k.split()]
-                                        if not re.search(r"\b" + k.lower() + r"\b", d1[descriptionCol].lower()):
-                                            if False in ratios:
-                                                continue
-                                    if fuzz.partial_ratio( k.lower(), d1[descriptionCol].lower())==100:
-                                        if not re.search(r"\b" + k.lower() + r"\b", d1[descriptionCol].lower()):
-                                            continue
-                                    if data_index>0 and len(data.iloc[[data_index-1]]) ==len(data.iloc[[data_index]]) and d1[depositCol]=='' and d1[withdrawCol]=='':
-                                        backD1 = d1
-                                        d1 = last_data_interated
-                                    cc_amounts.append(self.__format_amount__(d1[withdrawCol]))
-                                    try:
-                                        summdata["credit card"][d1[descriptionCol]+" "+backD1[descriptionCol]] = [k,self.__format_amount__(d1[withdrawCol])]
-                                    except:
-                                        summdata["credit card"][d1[descriptionCol]] = [k,self.__format_amount__(d1[withdrawCol])]
-
-                                    break
-
-                            for k in self.loan_keywords:
-                                d1[descriptionCol] = d1[descriptionCol].replace("xxxxx", " ")
-
-                                if fuzz.partial_ratio(k.lower(), d1[descriptionCol].lower()) > 90:
-                                    if len(k.split()) >=2:
-                                        ratios = [fuzz.partial_ratio(kth.lower(), d1[descriptionCol].lower())>90 for kth in k.split()]
-                                        if not re.search(r"\b" + k.lower() + r"\b", d1[descriptionCol].lower()):
-                                            if False in ratios:
-                                                continue
-                                    if fuzz.partial_ratio( k.lower(), d1[descriptionCol].lower())==100:
-                                        if not re.search(r"\b" + k.lower() + r"\b", d1[descriptionCol].lower()):
-                                            continue
-                                    if data_index>0 and len(data.iloc[[data_index-1]]) ==len(data.iloc[[data_index]]) and d1[depositCol]=='' and d1[withdrawCol]=='':
-                                        backD1 = d1
-
-                                        d1 = last_data_interated
-                                    loan_amounts.append(self.__format_amount__(d1[withdrawCol]))
-                                    try:
-                                        summdata["loan"][d1[descriptionCol]+" "+backD1[descriptionCol]] = [k,self.__format_amount__(d1[withdrawCol])]
-                                    except:
-                                        summdata["loan"][d1[descriptionCol]] = [k,self.__format_amount__(d1[withdrawCol])]
-
-                                    break
 
                             if averageBalance==0:
                                 for k in self.average_daily_balance:
@@ -278,39 +224,85 @@ class TableInfoExtraction:
 
                                                 break
 
+                            if begBalance == 0:
+                                for k in self.begBalanceKey:
+                                    if k.lower() in " ".join(d1).lower():
+                                        d1 = [d1i.lower() for d1i in d1 if d1i.strip() != '']
+                                        words = " ".join(d1).split()
+                                        words = [self.__format_amount__(i) for i in words if self.isAmount(i)==True]
+                                        begBalance = words[0]
+                                        # print(begBalance)
+                            if endBalance==0:
+                                for k in self.endBalanceKey:
+                                    if k.lower() in " ".join(d1).lower():
+                                        d1 = [d1i.lower() for d1i in d1 if d1i.strip() != '']
+                                        words = " ".join(d1).split()
+                                        words = [i for i in words if self.isAmount(i)==True]
+                                        endBalance = self.__format_amount__(words[0])
+                                        endDate = " ".join(d1).lower().replace(k.lower(),"").replace(words[0],"").strip()
+                            # if accountType == "":
+                            w = " ".join(d1)
+                            for accountTypeKeys in self.accountTypeKey:
+                                accountTypeKeys = accountTypeKeys.split(",")
+                                flags = [accountKey in w for accountKey in accountTypeKeys]
+                                if False not in flags:
+                                    accountTypeVal = re.search(accountTypeKeys[0] + "(.*)" + accountTypeKeys[1], w)
+                                    if len(accountTypeVal.group(1).strip().split())<3:
+                                        try:
+                                            accountType[accountTypeVal.group(1).strip()] = accountType[accountTypeVal.group(1).strip()]+1
+                                        except:
+                                            accountType[accountTypeVal.group(1).strip()] = 1
+                                        break
+
+                            for k in self.withdrawlKey:
+                                if " ".join(d1).lower().startswith(k.lower()):
+                                    d1 = [d1i.lower() for d1i in d1 if d1i.strip() != '']
+                                    words = " ".join(d1).split()
+                                    words = [self.__format_amount__(i) for i in words if self.isAmount(i)==True]
+                                    withdrawlBalances.append(words[0])
 
                         except IndexError as e:
                             pass
+
                         last_data_interated = d1
+
         except Exception as e:
             raise Exception("Something messed up. Reason: "+str(e))
-        payroll_amounts = sum(payroll_amounts)
-        cc_amounts = sum(cc_amounts)
-        loan_amounts = sum(loan_amounts)
-        return payroll_amounts,cc_amounts,loan_amounts, depositAmount, averageBalance,summdata
+
+        withdrawlBalances = sum(withdrawlBalances)
+        return depositAmount, averageBalance, begBalance, endBalance, withdrawlBalances, endDate,", ".join(accountType.keys())
 
 if __name__=="__main__":
-    tableInfoObj = TableInfoExtraction()
+    tableInfoObj = TableBOAInfoExtraction()
     filepath  = r'/Users/prasingh/Prashant/Prashant/CareerBuilder/Extraction/data/BankStatementPDF/0064O00000jc6nkQAA-00P4O00001Jjzq1UAB-joseph_allen_last_60_days_of_b.pdf'
     # filepath  = r'/Users/prasingh/Prashant/Prashant/CareerBuilder/Extraction/data/bankstatements/0060B00000iAQfVQAW-00P4O00001Ic6HpUAJ-bryan_niles_last_60_days_of_ba.pdf'
     # filepath  = r'/Users/prasingh/Prashant/Prashant/CareerBuilder/Extraction/data/BankStatements2/006am4O00000aDJ3zQAG-00P4O00001IbjsmUAB-Pat May BS.pdf'
     filepath  = r'/Users/prasingh/Prashant/Prashant/CareerBuilder/Extraction/data/NEW_BANK/other bank/BB_T BANK/0064O00000k74XZQAY-00P4O00001Jjt9dUAB-Bank Statement.pdf'
     filepath = r"/Users/prasingh/Prashant/Prashant/CareerBuilder/Extraction/data/BS_NT/BS_BOA_Test"
-    filepath = r"/Users/prasingh/Prashant/Prashant/CareerBuilder/Extraction/data/Batch4/0064O00000k5zlKQAQ-00P4O00001JkXAtUAN-nichelle_butler_last_60_days_o.pdf"
-    payroll_amounts, cc_amounts, loan_amounts, depositAmount, averageDailyBalance, summdata = tableInfoObj.getTableInfo(
-        os.path.join(filepath), 1, 2, 2)
-    print("payroll: ",payroll_amounts)
-    print("credit card: ",cc_amounts)
-    print("loan amounts: ",loan_amounts)
-    # files = os.listdir(filepath)
-    # for i, f in enumerate(files):
-    #     if ".pdf" in f:
-    #         print(f)
-    #         payroll_amounts,cc_amounts,loan_amounts, depositAmount, averageDailyBalance,summdata = tableInfoObj.getTableInfo(os.path.join(filepath,f),1,2,2)
-    #         # print("payroll: ",payroll_amounts)
-    #         # print("credit card: ",cc_amounts)
-    #         # print("loan amounts: ",loan_amounts)
-    #         print("deposit amount: ", depositAmount)
-    #         print("average amount: ", averageDailyBalance)
-    #         print(summdata)
+    filepath = r"/Users/prasingh/Prashant/Prashant/CareerBuilder/Extraction/data/BS_NT/BS_BOA/0064O00000k7RiOQAU-00P4O00001KTl0PUAT-__last_60_days_of_bank_stateme.pdf"
+    # payroll_amounts, cc_amounts, loan_amounts, depositAmount, averageDailyBalance, beg, end, withdraw, summdata = tableInfoObj.getTableInfo(
+    #     os.path.join(filepath), 1, 2, 2)
+    # print("payroll: ",payroll_amounts)
+    # print("credit card: ",cc_amounts)
+    # print("loan amounts: ",loan_amounts)
+    # print("beg amounts: ",beg)
+    # print("end amounts: ",end)
+    # print("with amounts: ",withdraw)
 
+
+    folderpath = r"/Users/prasingh/Prashant/Prashant/CareerBuilder/Extraction/data/BS_NT/BS_BOA/"
+
+    for file in os.listdir(folderpath):
+        print(file)
+        filepath = os.path.join(folderpath, file)
+        depositAmount, averageDailyBalance, beg, end, withdraw, endDate,accounttype = tableInfoObj.getTableInfo(
+            os.path.join(filepath), 1, 2, 2)
+        print("beg amounts: ", beg)
+        print("end amounts: ", end)
+        print("with amounts: ", withdraw)
+        print("end date: ", endDate)
+        print("accounttype: ", accounttype)
+        print("depositAmount: ", depositAmount)
+        print("averageDailyBalance: ", averageDailyBalance)
+        print("-------------------------")
+        # break

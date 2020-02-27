@@ -3,11 +3,15 @@ from pdf2image import convert_from_path
 from PIL import Image
 import os,re, json
 from getblocktextpdf import extract_block_text
-
+from get_logger import GetLogger
 image_block_obj = ImageTextExtractor()
 # obj = ExtractElectronics()
 
-
+logfilename = "classifier.log"
+debugLevel = 2
+loggerobj = GetLogger("Classifier", logfilename, debugLevel)
+logger = loggerobj.getlogger()
+logger.info("Classifier started")
 def convert_pdf_images(filepath, pagenum, documentId):
     path_img = []
 
@@ -202,6 +206,7 @@ def isPayStub(dataAll):
             return params
     return None
 def extractData(pdfPath, documentId):
+
     try:
         import time
         st = time.time()
@@ -235,14 +240,15 @@ def extractData(pdfPath, documentId):
                 return isBankSt
         return {}
     except Exception as e:
+        logger.error("Get Exception in extractData:" + str(e))
         print(e)
         return {}
 
 if __name__=="__main__":
     import csv
-    filepath=r"/Users/prasingh/Prashant/Prashant/CareerBuilder/Extraction/data/BS_NT/BS_WF_Test"
+    filepath=r"/Users/prasingh/Prashant/Prashant/CareerBuilder/Extraction/data/BS_NT/BS_WF/"
 
-    csvwriter = csv.writer(open("WFlassifier.csv","w",newline=""))
+    csvwriter = csv.writer(open("BOACLASS.csv","w",newline=""))
     files= os.listdir(filepath)
     for i, f in enumerate(files):
         print(f)
