@@ -104,7 +104,7 @@ def get_tablular_data(filepath, totalCol):
 
 if __name__=="__main__":
     filepath = r"/Users/prasingh/Prashant/Prashant/CareerBuilder/Extraction/data/BS_NT/BS_US/0064O00000jteKqQAI-00P4O00001JkXBcUAN-__last_60_days_of_bank_stateme.pdf"
-    filepath = r"/Users/prasingh/Prashant/Prashant/CareerBuilder/Extraction/data/NEW_BANK/FIFTH THIRD BANK/0064O00000k9tMHQAY-00P4O00001JjrFhUAJ-Sep BS.pdf"
+    filepath = r"/Users/prasingh/Prashant/Prashant/CareerBuilder/Extraction/data/BS_NT/BS_US/0064O00000jteKqQAI-00P4O00001JkXBcUAN-__last_60_days_of_bank_stateme.pdf"
     # filepath = r"/Users/prasingh/Prashant/Prashant/CareerBuilder/Extraction/data/BS_NT/BS_Citi/0064O00000aDmSjQAK-00P4O00001JkSvIUAV-chetrum BS.pdf"
     # filepath = r"/Users/prasingh/Prashant/Prashant/CareerBuilder/Extraction/data/BS_NT/BS_Citi/0064O00000aDmSjQAK-00P4O00001JkSvIUAV-chetrum BS.pdf"
     # filepath = r"/Users/prasingh/Prashant/Prashant/CareerBuilder/pdftablereader/Bank_Statement_Parser/BankStatementParser/main/TableExtractor/bank_statements/PNCBANK_back/t/10915568605217091500/4-28-2017 Operating Statement.pdf"

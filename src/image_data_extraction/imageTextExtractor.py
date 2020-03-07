@@ -478,7 +478,7 @@ class ImageTextExtractor:
 if __name__ == "__main__":
     obj = ImageTextExtractor()
     import time
-    img = Image.open(r"/Users/prasingh/Prashant/Prashant/CareerBuilder/pdftablereader/Bank_Statement_Parser/BankStatementParser/main/TableExtractor/Citibank/src/working/[0].jpg")
+    img = Image.open(r"/Users/prasingh/Prashant/Prashant/CareerBuilder/ExtractionCode/src/image_data_extraction/working/0.jpg")
     st_time = time.time()
     text_seg = obj.process_image(img)
     print(text_seg)

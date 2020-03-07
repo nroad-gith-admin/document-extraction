@@ -23,7 +23,7 @@ def most_common(List):
             commons.append(k)
     return commons
 
-def get_tablular_data(filepath, totalCol, dateCol, desCol, depositCol, withdrawCol, totalAmountsCol, isKeywordsPage, headers, additionKeywords,deductionKeywords):
+def get_tablular_data(filepath, totalCol, dateCol, desCol, depositCol, withdrawCol, totalAmountsCol, isKeywordsPage, headers, additionKeywords,deductionKeywords, edge_tol = 85):
     additionTable = []
     deductionTable = []
     try:
@@ -33,7 +33,7 @@ def get_tablular_data(filepath, totalCol, dateCol, desCol, depositCol, withdrawC
     num_pages = pdf.getNumPages()
     for page in range(1, num_pages + 1):
         try:
-            tables = tableCamelotObj.extract_table(filepath, str(page))
+            tables = tableCamelotObj.extract_table(filepath, str(page),edge_tol)
         except:
             continue
 
@@ -148,7 +148,7 @@ if __name__=="__main__":
         headers=["Date","number","description","additions","subtractions","balance"]
         print(os.path.join(filepath,file))
         # filepath = r"/Users/prasingh/Prashant/Prashant/CareerBuilder/Extraction/data/BS_NT/BS_WF/0064O00000k6B5kQAE-00P4O00001JkfySUAR-brett_costa_last_60_days_of_ba.pdf"
-        a,d = get_tablular_data(os.path.join(filepath,file),None,dateCol=0, desCol=2, depositCol=-3, withdrawCol=-2, totalAmountsCol=3, isKeywordsPage=True, headers=headers, additionKeywords=additionKeywords, deductionKeywords=deductionKeywords)
+        a,d = get_tablular_data(os.path.join(filepath,file),None,dateCol=0, desCol=2, depositCol=-3, withdrawCol=-2, totalAmountsCol=3, isKeywordsPage=True, headers=headers, additionKeywords=additionKeywords, deductionKeywords=deductionKeywords,edge_tol=150)
         ## citi bank
         # print(file)
         # additionKeywords, deductionKeywords = ["Checking activity", ], []

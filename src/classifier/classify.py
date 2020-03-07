@@ -246,9 +246,9 @@ def extractData(pdfPath, documentId):
 
 if __name__=="__main__":
     import csv
-    filepath=r"/Users/prasingh/Prashant/Prashant/CareerBuilder/Extraction/data/BS_NT/BS_WF/"
+    filepath=r"/Users/prasingh/Prashant/Prashant/CareerBuilder/Extraction/data/BS_NT/BS_US_Test"
 
-    csvwriter = csv.writer(open("BOACLASS.csv","w",newline=""))
+    csvwriter = csv.writer(open("USCLASS.csv","w",newline=""))
     files= os.listdir(filepath)
     for i, f in enumerate(files):
         print(f)

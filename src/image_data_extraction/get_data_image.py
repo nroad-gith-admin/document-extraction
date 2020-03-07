@@ -73,5 +73,5 @@ if __name__=="__main__":
         filepath = os.path.join(files,filepath)
         data= tableInfoObj.get_data(filepath,[0,1,])
         print(data)
-        break
+        # break
 

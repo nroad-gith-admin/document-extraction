@@ -6,11 +6,11 @@ import camelot
 
 
 class TableExtractorCamelot:
-    def extract_table(self, pdfFile, pageNum):
+    def extract_table(self, pdfFile, pageNum, edge_tol=85):
 
         tables = camelot.read_pdf(pdfFile, pages = str(pageNum),
         flavor = 'stream',
-        edge_tol = 85,)
+        edge_tol = edge_tol,)
             # pdfFile, pages=str(pageNum),
             #                           flavor='stream',
             #                           edge_tol=250,
@@ -22,12 +22,12 @@ class TableExtractorCamelot:
 
 
 if __name__=="__main__":
-    filepath = r"/Users/prasingh/Prashant/Prashant/CareerBuilder/Extraction/data/BS_NT/BS_PNC/3-31-2017 Operating Statement.pdf"
+    filepath = r"/Users/prasingh/Prashant/Prashant/CareerBuilder/Extraction/data/BS_NT/BS_JPMC_Test/0064O00000k90IxQAI-00P4O00001KSxdvUAD-Bank Statement.pdf"
     # filepath = r"/Users/prasingh/Prashant/Prashant/CareerBuilder/pdftablereader/Bank_Statement_Parser/BankStatementParser/main/TableExtractor/bank_statements/PNCBANK_back/t/10915568605217091500/4-28-2017 Operating Statement.pdf"
     # filepath = r"/Users/prasingh/Prashant/Prashant/CareerBuilder/pdftablereader/Bank_Statement_Parser/BankStatementParser/main/TableExtractor/bank_statements/PNCBANK_back/t/20988146275217061400/April Bank.pdf"
     tableCamelotObj = TableExtractorCamelot()
-    page = 1
-    tables = tableCamelotObj.extract_table(filepath, str(page))
+    page = 2
+    tables = tableCamelotObj.extract_table(filepath, str(page), edge_tol=200)
     for table_i in range(len(tables)):
         data = (tables[table_i].df)
     #     print(data)

@@ -59,6 +59,7 @@ class TableInfoExtraction2:
 
     def __format_amount__(self, amount):
         try:
+            amount = str(amount)
             amount = amount.replace(",","")
 
             amount = amount.replace("$", "")
@@ -68,7 +69,7 @@ class TableInfoExtraction2:
 
 
 
-    def __getTableInfo__(self, additionData, deductionData, descriptionCol, depositCol, withdrawCol):
+    def getTableInfoData(self, additionData, deductionData, descriptionCol, depositCol, withdrawCol):
         payroll_amounts = []
         cc_amounts = []
         loan_amounts = []
@@ -185,7 +186,7 @@ class TableInfoExtraction2:
         # print(additionData)
         # print(deductionData)
         # data = pd.DataFrame.from_records(data)
-        payroll_amounts, cc_amounts, loan_amounts, summdata = self.__getTableInfo__(additionData, deductionData, descriptionCol, depositCol, withdrawCol)
+        payroll_amounts, cc_amounts, loan_amounts, summdata = self.getTableInfoData(additionData, deductionData, descriptionCol, depositCol, withdrawCol)
         return payroll_amounts,cc_amounts,loan_amounts,summdata
 
 
@@ -196,7 +197,7 @@ if __name__=="__main__":
     filepath  = r'/Users/prasingh/Prashant/Prashant/CareerBuilder/Extraction/data/BankStatementPDF/0064O00000jc6nkQAA-00P4O00001Jjzq1UAB-joseph_allen_last_60_days_of_b.pdf'
     # filepath  = r'/Users/prasingh/Prashant/Prashant/CareerBuilder/Extraction/data/bankstatements/0060B00000iAQfVQAW-00P4O00001Ic6HpUAJ-bryan_niles_last_60_days_of_ba.pdf'
     # filepath  = r'/Users/prasingh/Prashant/Prashant/CareerBuilder/Extraction/data/BankStatements2/006am4O00000aDJ3zQAG-00P4O00001IbjsmUAB-Pat May BS.pdf'
-    filepath  = r'/Users/prasingh/Prashant/Prashant/CareerBuilder/Extraction/data/NEW_BANK/FIFTH THIRD BANK/0064O00000k9tMHQAY-00P4O00001JjrFhUAJ-Sep BS.pdf'
+    filepath  = r'/Users/prasingh/Prashant/Prashant/CareerBuilder/Extraction/data/BS_NT/BS_US/0064O00000jteKqQAI-00P4O00001JkXBcUAN-__last_60_days_of_bank_stateme.pdf'
     payroll_amounts, cc_amounts, loan_amounts, summdata = tableInfoObj.getTableInfo(os.path.join(filepath), 1, 2, 2)
     print("payroll: ",payroll_amounts)
     print("credit card: ",cc_amounts)

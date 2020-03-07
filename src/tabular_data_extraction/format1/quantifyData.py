@@ -81,7 +81,18 @@ def df_to_list( df):
             newli.append(di)
 
     return newli
+def format_amount( amount):
+    # try:
+        amount = amount.replace(",","")
 
+        amount = amount.replace("$", "")
+        if "-"in amount:
+            amount = amount.replace("-","")
+            return 0-float(amount.strip())
+
+        return float(amount.strip())
+    # except:
+    #     return 0
 def getFormatted(data):
     data = df_to_list(data)
     data = [i.strip() for i in data if i.strip()!='']
@@ -93,7 +104,7 @@ def getFormatted(data):
             if isDate(i):
                 date = i
             elif isAmount(i):
-                amounts.append(i)
+                amounts.append(format_amount(i))
             else:
                 description.append(i)
 

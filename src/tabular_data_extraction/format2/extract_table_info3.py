@@ -173,8 +173,8 @@ class TableInfoExtraction3:
         loan_amounts = sum(loan_amounts)
         return payroll_amounts,cc_amounts,loan_amounts, summdata
 
-    def getTableInfo(self, filepath, totalCol, dateCol, desCol, depositCol, withdrawCol, totalAmountsCol, isKeywordsPage, headers, additionKeywords, deductionKeywords):
-        additionData, deductionData = get_tablular_data(filepath,totalCol, dateCol, desCol, depositCol, withdrawCol, totalAmountsCol, isKeywordsPage, headers, additionKeywords, deductionKeywords)
+    def getTableInfo(self, filepath, totalCol, dateCol, desCol, depositCol, withdrawCol, totalAmountsCol, isKeywordsPage, headers, additionKeywords, deductionKeywords,edge_tol=85):
+        additionData, deductionData = get_tablular_data(filepath,totalCol, dateCol, desCol, depositCol, withdrawCol, totalAmountsCol, isKeywordsPage, headers, additionKeywords, deductionKeywords,edge_tol)
         # data = pd.DataFrame.from_records(data)
         payroll_amounts, cc_amounts, loan_amounts, summdata = self.__getTableInfo__(additionData, deductionData, 1, 2, 2)
         return payroll_amounts,cc_amounts,loan_amounts,summdata
@@ -183,28 +183,41 @@ class TableInfoExtraction3:
 
 if __name__=="__main__":
     tableInfoObj = TableInfoExtraction3()
-    additionKeywords, deductionKeywords = ["Transaction history", "Transaction history (continued)"], []
-    headers = [["Date", "number", "description", "additions", "subtractions", "balance"],]
-    # filepath r""
-    # print(os.path.join(filepath, file))
-    # filepath = r"/Users/prasingh/Prashant/Prashant/CareerBuilder/Extraction/data/BS_NT/BS_WF/0064O00000k6B5kQAE-00P4O00001JkfySUAR-brett_costa_last_60_days_of_ba.pdf"
-    # a, d = get_tablular_data(os.path.join(filepath, file), None, dateCol=0, desCol=2, depositCol=-3, withdrawCol=-2,
+    # additionKeywords, deductionKeywords = ["Transaction history", "Transaction history (continued)"], []
+    # headers = [["Date", "number", "description", "additions", "subtractions", "balance"],]
+    # # filepath r""
+    # # print(os.path.join(filepath, file))
+    # # filepath = r"/Users/prasingh/Prashant/Prashant/CareerBuilder/Extraction/data/BS_NT/BS_WF/0064O00000k6B5kQAE-00P4O00001JkfySUAR-brett_costa_last_60_days_of_ba.pdf"
+    # # a, d = get_tablular_data(os.path.join(filepath, file), None, dateCol=0, desCol=2, depositCol=-3, withdrawCol=-2,
+    # #                          totalAmountsCol=3, isKeywordsPage=True, headers=headers, additionKeywords=additionKeywords,
+    # #                          deductionKeywords=deductionKeywords)
+    #
+    # # filepath  = r'/Users/prasingh/Prashant/Prashant/CareerBuilder/Extraction/data/BankStatementPDF/0064O00000jc6nkQAA-00P4O00001Jjzq1UAB-joseph_allen_last_60_days_of_b.pdf'
+    # # filepath  = r'/Users/prasingh/Prashant/Prashant/CareerBuilder/Extraction/data/bankstatements/0060B00000iAQfVQAW-00P4O00001Ic6HpUAJ-bryan_niles_last_60_days_of_ba.pdf'
+    # # filepath  = r'/Users/prasingh/Prashant/Prashant/CareerBuilder/Extraction/data/BankStatements2/006am4O00000aDJ3zQAG-00P4O00001IbjsmUAB-Pat May BS.pdf'
+    # # filepath  = r'/Users/prasingh/Prashant/Prashant/CareerBuilder/Extraction/data/BS_NT/BS_WF/0064O00000k6B5kQAE-00P4O00001JkfySUAR-brett_costa_last_60_days_of_ba.pdf'
+    # filepath  = r'/Users/prasingh/Prashant/Prashant/CareerBuilder/Extraction/data/BS_NT/BS_WF/0064O00000k8xuYQAQ-00P4O00001KncuGUAR-romas_faircloth_last_60_days_o.pdf'
+    # import pandas as pd
+    # # df = pd.DataFrame.from_records(data)
+    # payroll_amounts,cc_amounts,loan_amounts,summdata = tableInfoObj.getTableInfo(filepath, None, dateCol=0, desCol=2, depositCol=-3, withdrawCol=-2,
     #                          totalAmountsCol=3, isKeywordsPage=True, headers=headers, additionKeywords=additionKeywords,
-    #                          deductionKeywords=deductionKeywords)
+    #                          deductionKeywords=deductionKeywords )
+    # print("payroll: ",payroll_amounts)
+    # print("credit card: ",cc_amounts)
+    # print("loan amounts: ",loan_amounts)
+    # print(summdata)
 
-    # filepath  = r'/Users/prasingh/Prashant/Prashant/CareerBuilder/Extraction/data/BankStatementPDF/0064O00000jc6nkQAA-00P4O00001Jjzq1UAB-joseph_allen_last_60_days_of_b.pdf'
-    # filepath  = r'/Users/prasingh/Prashant/Prashant/CareerBuilder/Extraction/data/bankstatements/0060B00000iAQfVQAW-00P4O00001Ic6HpUAJ-bryan_niles_last_60_days_of_ba.pdf'
-    # filepath  = r'/Users/prasingh/Prashant/Prashant/CareerBuilder/Extraction/data/BankStatements2/006am4O00000aDJ3zQAG-00P4O00001IbjsmUAB-Pat May BS.pdf'
-    # filepath  = r'/Users/prasingh/Prashant/Prashant/CareerBuilder/Extraction/data/BS_NT/BS_WF/0064O00000k6B5kQAE-00P4O00001JkfySUAR-brett_costa_last_60_days_of_ba.pdf'
-    filepath  = r'/Users/prasingh/Prashant/Prashant/CareerBuilder/Extraction/data/BS_NT/BS_WF/0064O00000k8xuYQAQ-00P4O00001KncuGUAR-romas_faircloth_last_60_days_o.pdf'
+
+
+    additionKeywords, deductionKeywords = ["TRANSACTION DETAIL", "TRANSACTION DETAIL (continued)"], []
+    headers = [["Date", "description", "Amount", "Balance"],]
+    filepath  = r'/Users/prasingh/Prashant/Prashant/CareerBuilder/Extraction/data/BS_NT/BS_JPMC_Test/0064O00000k90IxQAI-00P4O00001KSxdvUAD-Bank Statement.pdf'
     import pandas as pd
-    # df = pd.DataFrame.from_records(data)
-    payroll_amounts,cc_amounts,loan_amounts,summdata = tableInfoObj.getTableInfo(filepath, None, dateCol=0, desCol=2, depositCol=-3, withdrawCol=-2,
-                             totalAmountsCol=3, isKeywordsPage=True, headers=headers, additionKeywords=additionKeywords,
-                             deductionKeywords=deductionKeywords )
+    payroll_amounts,cc_amounts,loan_amounts,summdata = tableInfoObj.getTableInfo(filepath, None, dateCol=0, desCol=1, depositCol=-2, withdrawCol=2,
+                             totalAmountsCol=2, isKeywordsPage=True, headers=headers, additionKeywords=additionKeywords,
+                             deductionKeywords=deductionKeywords,edge_tol=500 )
     print("payroll: ",payroll_amounts)
     print("credit card: ",cc_amounts)
     print("loan amounts: ",loan_amounts)
     print(summdata)
-
 

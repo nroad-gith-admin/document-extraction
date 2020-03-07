@@ -7,21 +7,21 @@ sys.path.insert(0, curpath)
 from image_data_extraction.get_data_image import ExtractDataImage
 from tabular_info_extraction.boa_extraction_summary import BOAExtractSum
 from tabular_info_extraction.boa_table_info import TableBOAInfoExtraction
-from staticCode.boa_static import ExtractBOA
+from staticCode.pnc_static import ExtractPNC
 from tabular_data_extraction.format1.extract_table_info2 import TableInfoExtraction2
 from qa_checks.checks import check_all
+from image_based_info_extraction.info_extraction import TableInfoExtractionImage
 
 
 class BankExtraction:
 
     def __init__(self):
         self.extractDataImgObj = ExtractDataImage()
-        self.dataExtObjBoa = ExtractBOA()
+        self.dataExtObjPNC = ExtractPNC()
         self.tableInfoObjBOA = TableBOAInfoExtraction()
         self.tableInfoObj2 = TableInfoExtraction2()
         self.boaSummaryExtraction = BOAExtractSum()
-
-
+        self.tableInfoExtImg = TableInfoExtractionImage()
 
     def isBankStatement(self,data):
         if not isinstance(data, str):
@@ -52,20 +52,31 @@ class BankExtraction:
             if pdfFileData != None and os.path.isdir(pdfFileData):
                 if os.path.isdir(pdfFileData):
                     statementData = []
+                    # for jsonfiles in os.listdir(pdfFileData):
                     for jsonfile_i, jsonfile in enumerate(os.listdir(pdfFileData)):
-                        if jsonfile_i in [0, 1, 2, ]:
+                        if jsonfile_i in [1, ]:
+                            # if jsonfile == "0.pdf" or jsonfile == "1.pdf"
                             with open(os.path.join(pdfFileData, jsonfile)) as f:
                                 statementData.extend(json.load(f))
             else:
-                statementData = self.extractDataImgObj.get_data(pdfFile, [0, 1, 2])
+                statementData = self.extractDataImgObj.get_data(pdfFile, [1, ])
 
-            data = self.dataExtObjBoa.get_classified(statementData)
+            data = self.dataExtObjPNC.get_classified(statementData)
 
             payroll_amounts, cc_amounts, loan_amounts, summdata = self.tableInfoObj2.getTableInfo(
                 pdfFile, 1, 2, 2)
-            employerNames, employeeName, ccProviders, directDepositAmounts = self.boaSummaryExtraction.extract_summ_info(summdata)
-            deposits, averageBalance, begBalance, endBalance, withdrawAmounts, endDate, accounttype = self.tableInfoObjBOA.getTableInfo(
-                pdfFile, descriptionCol, depositCol, withdrawCol)
+
+            if pdfFileData != None:
+                if os.path.isdir(pdfFileData):
+                    statementData = []
+                    for jsonfile_i, jsonfile in enumerate(os.listdir(pdfFileData)):
+                        if jsonfile_i in [0, 1, ]:
+                            with open(os.path.join(pdfFileData, jsonfile)) as f:
+                                statementData.extend(json.load(f))
+            else:
+                statementData = extractDataImgObj.get_data(pdfFile, [0, 1, ])
+            print(statementData)
+            deposits, averageBalance = self.tableInfoExtImg.getTableInfo(statementData)
 
 
             new_s = {}
@@ -106,6 +117,15 @@ class BankExtraction:
             if deposits ==0:
                 deposits = -9999.99
 
+            begBalance = 0
+            endBalance = 0
+            endDate = 0
+            withdrawAmounts = 0
+            accounttype = None
+            employeeName = None
+            employerNames = None
+            ccProviders = None
+            directDepositAmounts = None
 
             BankData["begBalance"] = begBalance
             BankData["endBalance"] = endBalance
@@ -148,17 +168,10 @@ class BankExtraction:
             workbook = xlwt.Workbook()
             sheet = workbook.add_sheet('Top Banks Data')
 
-            # headers = ["Sr.No", "Unique ID", "Documentation ID and Name", "Name on the Account", "Bank Name",
-            #            "Account Number",
-            #            "Routing Number (if available)", "Average Daily Balance (if available)",
-            #            "Loan Deposits", "Payroll Deposits", "Direct Deposits", "CC Payments", "Loan Payments"]
-            headers = ["Opp. ID", "Batch ID", "File ID / Name", "Name on the Account", "Bank Name", "Account Number",
-             "Routing Number (if available)", "Average Daily Balance (if available)", "Loan Deposits",
-             "Payroll Deposits", "Direct Deposits", "CC Payments", "Loan Payments",
-             "Account Type", "Member Account Number(may be present)", "Current Balance", "Withdrawls / Debits",
-             "As of Date", "Average Balance", "Negative Days", "Competitor Name", "Direct Deposit employer name",
-             "Direct Deposit employee name", "Payroll Deposit", "employer name", "Credit Card Provider Name",
-             "ACH Debits(Yes or No)", "At least 10 transactions"]
+            headers = ["Sr.No", "Unique ID", "Documentation ID and Name", "Name on the Account", "Bank Name",
+                       "Account Number",
+                       "Routing Number (if available)", "Average Daily Balance (if available)",
+                       "Loan Deposits", "Payroll Deposits", "Direct Deposits", "CC Payments", "Loan Payments"]
 
             excelRow = 0
             for j, v1 in enumerate(headers):
@@ -177,22 +190,6 @@ class BankExtraction:
             sheet.write(excelRow, 10, BankData["directDeposits"])
             sheet.write(excelRow, 11, BankData["CCPayments"])
             sheet.write(excelRow, 12, BankData["loanPayments"])
-            sheet.write(excelRow, 13, BankData["accountType"])
-            sheet.write(excelRow, 14, '')
-            sheet.write(excelRow, 15,  BankData["endBalance"])
-            sheet.write(excelRow, 16,  BankData["totalWithdraw"])
-            sheet.write(excelRow, 17,  BankData["ToDate"])
-            sheet.write(excelRow, 18,  BankData["averageDailyBalance"])
-            sheet.write(excelRow, 19, '')
-            sheet.write(excelRow, 20,  '')
-            sheet.write(excelRow, 21,  BankData["EmployersName"])
-            sheet.write(excelRow, 22,  BankData["EmployeeNames"])
-            sheet.write(excelRow, 23,  BankData["payrollDeposits"])
-            sheet.write(excelRow, 24,  BankData["EmployersName"])
-            sheet.write(excelRow, 25,  BankData["CCProviders"])
-            sheet.write(excelRow, 26,  '')
-            sheet.write(excelRow, 27,  '')
-
             # sheet.write(excelRow, 13, str(data["SummaryInfo"]))
             workbook.save(fileToWrite)
 
@@ -219,14 +216,14 @@ if __name__=="__main__":
     # print(obj.extractBankStatement(pdfFile, pdfFileData,[1,2,2,],"boa1"))
     #
     #
-    pdffiles = r"/Users/prasingh/Prashant/Prashant/CareerBuilder/Extraction/data/BS_NT/BS_BOA/"
+    pdffiles = r"/Users/prasingh/Prashant/Prashant/CareerBuilder/Extraction/data/BS_NT/BS_PNC/"
     # print(os.listdir(pdffiles))
     pdfData = (r"/Users/prasingh/Prashant/Prashant/CareerBuilder/ExtractionCode/src/classifier/data/")
     toCSV = []
     for file in os.listdir(pdffiles):
         if ".DS_Store" not in file:
             pdfDataPath = os.path.join(pdfData,file.replace(".pdf",""))
-
+            print(file)
             file = os.path.join(pdffiles, file)
 
 
@@ -241,15 +238,11 @@ if __name__=="__main__":
     import csv
 
     keys = toCSV[0].keys()
-    with open('boa-res.csv', 'w') as output_file:
+    with open('pnc-res.csv', 'w') as output_file:
         dict_writer = csv.DictWriter(output_file, keys)
         dict_writer.writeheader()
         dict_writer.writerows(toCSV)
 
 
 
-    # ["Opp. ID",	"Batch ID",	"File ID / Name",	"Name on the Account",	"Bank Name",	"Account Number",	"Routing Number (if available)",	"Average Daily Balance (if available)",	"Loan Deposits",
-    #  "Payroll Deposits",	"Direct Deposits",	"CC Payments",	"Loan Payments",
-    #  "Account Type",	"Member Account Number(may be present)",	"Current Balance",	"Withdrawls / Debits",
-    #  "As of Date",	"Average Balance",	"Negative Days",	"Competitor Name",	"Direct Deposit employer name",
-    #  "Direct Deposit employee name",	"Payroll Deposit", "employer name",	"Credit Card Provider Name",	"ACH Debits(Yes or No)",	"At least 10 transactions" ]
+
