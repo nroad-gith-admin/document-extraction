@@ -246,7 +246,7 @@ def extractData(pdfPath, documentId):
 
 if __name__=="__main__":
     import csv
-    filepath=r"/Users/prasingh/Prashant/Prashant/CareerBuilder/Extraction/data/BS_NT/BS_US_Test"
+    filepath=r"/Users/prasingh/Prashant/Prashant/CareerBuilder/Extraction/data/BS_NT/BS_PNC"
 
     csvwriter = csv.writer(open("USCLASS.csv","w",newline=""))
     files= os.listdir(filepath)

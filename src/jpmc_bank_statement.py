@@ -6,7 +6,7 @@ sys.path.insert(0, curpath)
 
 from image_data_extraction.get_data_image import ExtractDataImage
 from tabular_info_extraction.jpmc_extraction_summary import JPMCExtractSum
-from tabular_info_extraction.jpmc_table_info2 import TableJPMCInfoExtraction
+from tabular_info_extraction.jpmc_table_info import TableJPMCInfoExtraction
 from staticCode.jpmorganchase_static import ExtractJPMC
 from tabular_data_extraction.format1.extract_table_info2 import TableInfoExtraction2
 from tabular_data_extraction.format1.get_tabular_data import get_tablular_data
@@ -16,6 +16,9 @@ from tabular_info_extraction.table_extrator_camelot import TableExtractorCamelot
 from PyPDF2 import PdfFileReader
 from tabular_info_extraction.utils import *
 import numpy as np
+from negative_days.negative_days import negative_days_count
+
+
 class JPMCBankExtraction:
 
     def __init__(self):
@@ -130,6 +133,7 @@ class JPMCBankExtraction:
     def extractBankStatement(self, pdfFile, pdfFileData, params, docID):
         payroll_amounts, cc_amounts, loan_amounts, deposits, averageBalance, summdata = "", "", "", "", "", None
         descriptionCol, depositCol, withdrawCol = params[0],params[1],params[2]
+        lenData = 0
         BankData = {}
         try:
             if pdfFileData != None and os.path.isdir(pdfFileData):
@@ -150,13 +154,14 @@ class JPMCBankExtraction:
 
             formatBank = self.__get_format_type__(pdfFile)
             if formatBank == 1:
-                payroll_amounts, cc_amounts, loan_amounts, summdata = self.tableInfoObj2.getTableInfo(
+                payroll_amounts, cc_amounts, loan_amounts, lenData, additionData, deductionData ,summdata = self.tableInfoObj2.getTableInfo(
                     pdfFile, 1, 2, 2)
             elif formatBank ==2:
                 additionData, deductionData = get_tablular_data(pdfFile, 3)
                 additionData, deductionData = self.separate_format2_jpmc(deductionData)
                 # print(additionData)
                 # print(deductionData)
+                lenData = len(additionData)+len(deductionData)
                 payroll_amounts, cc_amounts, loan_amounts, summdata = self.tableInfoObj2.getTableInfoData(additionData, deductionData, descriptionCol=1, depositCol = 2, withdrawCol=2)
 
             employerNames, employeeName, ccProviders, directDepositAmounts = self.jpmcSummaryExtraction.extract_summ_info(
@@ -165,6 +170,7 @@ class JPMCBankExtraction:
             deposits, averageBalance, begBalance, endBalance, withdrawAmounts, endDate, accounttype = self.tableInfoObjJPMC.getTableInfo(
                 pdfFile, descriptionCol, depositCol, withdrawCol)
 
+            negativeDayeCount = negative_days_count(additionData, deductionData, begBalance)
 
             new_s = {}
             for k, v in data.items():
@@ -223,6 +229,9 @@ class JPMCBankExtraction:
             BankData["loanPayments"] = (loan_amounts)
             BankData["directDeposits"] = (deposits)
             BankData["SummaryInfo"] = (summdata)
+            BankData["At least 10 transactions"] =lenData>10
+            BankData["NegativeDaysCount"] = (negativeDayeCount)
+
             # BankData["uniqueId"] = self.extractUniqueID(pdfFile)
 
 
@@ -247,15 +256,20 @@ class JPMCBankExtraction:
             workbook = xlwt.Workbook()
             sheet = workbook.add_sheet('Top Banks Data')
 
-            headers = ["Sr.No", "Unique ID", "Documentation ID and Name", "Name on the Account", "Bank Name",
-                       "Account Number",
-                       "Routing Number (if available)", "Average Daily Balance (if available)",
-                       "Loan Deposits", "Payroll Deposits", "Direct Deposits", "CC Payments", "Loan Payments"]
+            headers = ["Opp. ID", "Batch ID", "File ID / Name", "Name on the Account", "Bank Name", "Account Number",
+                       "Routing Number (if available)", "Average Daily Balance (if available)", "Loan Deposits",
+                       "Payroll Deposits", "Direct Deposits", "CC Payments", "Loan Payments",
+                       "Account Type", "Member Account Number(may be present)", "Current Balance",
+                       "Withdrawls / Debits",
+                       "As of Date", "Average Balance", "Negative Days", "Competitor Name",
+                       "Direct Deposit employer name",
+                       "Direct Deposit employee name", "Payroll Deposit", "employer name", "Credit Card Provider Name",
+                       "ACH Debits(Yes or No)", "At least 10 transactions"]
 
             excelRow = 0
             for j, v1 in enumerate(headers):
                 sheet.write(excelRow, j, v1)
-            excelRow = excelRow+1
+            excelRow = excelRow + 1
             sheet.write(excelRow, 0, excelRow)
             sheet.write(excelRow, 1, "")
             sheet.write(excelRow, 2, pdfFile.split("/")[-1])
@@ -269,6 +283,21 @@ class JPMCBankExtraction:
             sheet.write(excelRow, 10, BankData["directDeposits"])
             sheet.write(excelRow, 11, BankData["CCPayments"])
             sheet.write(excelRow, 12, BankData["loanPayments"])
+            sheet.write(excelRow, 13, BankData["accountType"])
+            sheet.write(excelRow, 14, '')
+            sheet.write(excelRow, 15, BankData["endBalance"])
+            sheet.write(excelRow, 16, BankData["totalWithdraw"])
+            sheet.write(excelRow, 17, BankData["ToDate"])
+            sheet.write(excelRow, 18, BankData["averageDailyBalance"])
+            sheet.write(excelRow, 19, BankData["NegativeDaysCount"])
+            sheet.write(excelRow, 20, '')
+            sheet.write(excelRow, 21, BankData["EmployersName"])
+            sheet.write(excelRow, 22, BankData["EmployeeNames"])
+            sheet.write(excelRow, 23, BankData["payrollDeposits"])
+            sheet.write(excelRow, 24, BankData["EmployersName"])
+            sheet.write(excelRow, 25, BankData["CCProviders"])
+            sheet.write(excelRow, 26, '')
+            sheet.write(excelRow, 27, lenData > 10)
             # sheet.write(excelRow, 13, str(data["SummaryInfo"]))
             workbook.save(fileToWrite)
 

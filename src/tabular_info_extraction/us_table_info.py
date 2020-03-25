@@ -13,7 +13,37 @@ import re
 import os
 from fuzzywuzzy import fuzz
 from extract_electronics import ExtractElectronics
+import configparser,os
 
+
+
+config_file_loc = os.path.join(os.path.dirname(os.path.realpath(__file__)), "..", "..", "config", "bankstatement.cfg")
+config_obj = configparser.ConfigParser()
+
+
+
+try:
+    config_obj.read(config_file_loc)
+    account = (config_obj.get("US", "account"))
+    routing = (config_obj.get("US", "routing"))
+    begBalanceKey = (config_obj.get("US", "begBalanceKey"))
+    begBalanceKey = begBalanceKey.split(",")
+
+    endBalanceKey = (config_obj.get("US", "endBalanceKey"))
+    endBalanceKey = endBalanceKey.split(",")
+
+    withdrawlKey = (config_obj.get("US", "withdrawlKey"))
+    withdrawlKey = withdrawlKey.split(",")
+
+    accountTypeKey = (config_obj.get("US", "accountTypeKey"))
+    accountTypeKey = accountTypeKey.split(",")
+    # accountTypeKey = [i.replace(":",",") for i in accountTypeKey]
+
+    endDate = (config_obj.get("US", "endDate"))
+    endDate = endDate.split(",")
+
+except Exception as e:
+    raise Exception("Config file error: " + str(e))
 
 class TableUSInfoExtraction:
     def isDate(self,val):
@@ -77,12 +107,12 @@ class TableUSInfoExtraction:
             self.average_daily_balance = [str(i[8]).strip() for i in keywordList if str(i[8]) != 'nan']
             self.average_daily_balance = list(set(self.average_daily_balance))
 
-            self.begBalanceKey = ["Beginning Balance",]
-            self.endBalanceKey = ["Ending Balance"]
-            self.withdrawlKey = ["Card Withdrawals","Other Withdrawals","Fees","Checks Paid"]
+            self.begBalanceKey = begBalanceKey
+            self.endBalanceKey = endBalanceKey
+            self.withdrawlKey = withdrawlKey
             self.withdrawlKey = [i.lower().strip() for i in self.withdrawlKey]
-            self.endDateKeys = ["Ending Balance on"]
-            self.accountTypeKey = ["U.S. BANK GOLD","SUMMARY OF YOUR U.S.BANK","SILVER ELITE","EASY","U.S. BANK SILVER"]
+            self.endDateKeys = endDate
+            self.accountTypeKey = accountTypeKey
             # print(self.average_daily_balance)
         except Exception as e:
             raise Exception("Failed to extract values for payroll_keywords, cc_keywords, loan_keywords. Reason: "+str(e))

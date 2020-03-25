@@ -13,7 +13,34 @@ import re
 import os
 from fuzzywuzzy import fuzz
 
+import configparser,os
 
+
+
+config_file_loc = os.path.join(os.path.dirname(os.path.realpath(__file__)), "..", "..", "config", "bankstatement.cfg")
+config_obj = configparser.ConfigParser()
+
+
+
+try:
+    config_obj.read(config_file_loc)
+    account = (config_obj.get("WellsFargo", "account"))
+    routing = (config_obj.get("WellsFargo", "routing"))
+    begBalanceKey = (config_obj.get("WellsFargo", "begBalanceKey"))
+    begBalanceKey = begBalanceKey.split(",")
+
+    endBalanceKey = (config_obj.get("WellsFargo", "endBalanceKey"))
+    endBalanceKey = endBalanceKey.split(",")
+
+    withdrawlKey = (config_obj.get("WellsFargo", "withdrawlKey"))
+    withdrawlKey = withdrawlKey.split(",")
+
+    accountTypeKey = (config_obj.get("WellsFargo", "accountTypeKey"))
+    accountTypeKey = accountTypeKey.split(",")
+    accountTypeKey = [i.replace(":",",") for i in accountTypeKey]
+
+except Exception as e:
+    raise Exception("Config file error: " + str(e))
 
 class TableWFInfoExtraction:
     def isDate(self,val):
@@ -75,10 +102,10 @@ class TableWFInfoExtraction:
             self.average_daily_balance = [str(i[8]).strip() for i in keywordList if str(i[8]) != 'nan']
             self.average_daily_balance = list(set(self.average_daily_balance))
 
-            self.begBalanceKey = ["Beginning balance on",]
-            self.endBalanceKey = ["Ending balance on"]
-            self.withdrawlKey = ["Withdrawals/Subtractions"]
-            self.accountTypeKey = ["Your,Banking","Your,account"]
+            self.begBalanceKey = begBalanceKey
+            self.endBalanceKey = endBalanceKey
+            self.withdrawlKey = withdrawlKey
+            self.accountTypeKey = accountTypeKey
             # print(self.payroll_keywords)
         except Exception as e:
             raise Exception("Failed to extract values for payroll_keywords, cc_keywords, loan_keywords. Reason: "+str(e))

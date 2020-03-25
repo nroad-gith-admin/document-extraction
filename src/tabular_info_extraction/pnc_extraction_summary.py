@@ -6,7 +6,7 @@ from nltk import ngrams
 
 
 
-class BOAExtractSum:
+class PNCExtractSum:
     def __init__(self):
         keywordListFol = os.path.join(os.path.dirname(os.path.realpath(__file__)), "..", "..","data", "Keywords_BS.XLSX")
         if os.path.isfile(keywordListFol) == False:
@@ -97,18 +97,18 @@ class BOAExtractSum:
                 for k in self.directdep_keywords:
                     k = k.lower()
                     if re.search(r"\b" + k.lower() + r"\b", des.lower()):
-                        desplited = des.split(k)
+                        desplited = des.split("Payroll".lower())[-1].strip()
+                        directDepositAmounts.append(self.__format_amount__(str(desVal[1])))
+                        employerName.append(desplited)
+
+                        # if len(desplited) >0:
+                        #     employerName.append(desplited[0].strip())
 
 
-
-                        if len(desplited) >0:
-                            employerName.append(desplited[0].strip())
-                            directDepositAmounts.append(self.__format_amount__(str(desVal[1])))
-
-                            desplited = [j for i in desplited for j in i.split() if "INDN:".lower() in j]
-                            if len(desplited)>0:
-                                employeeName.extend(desplited[0].replace("INDN:".lower(),"").strip().split(","))
-                            break
+                            # desplited = [j for i in desplited for j in i.split() if "Payroll".lower() in j]
+                            # if len(desplited)>0:
+                            #     employeeName.extend(desplited[0].replace("INDN:".lower(),"").strip().split(","))
+                            # break
 
         if 'payroll' in summ:
             for des, desVal in summ['payroll'].items():
@@ -146,10 +146,10 @@ class BOAExtractSum:
 # s2 = "credit card"
 # print( list(matches(s1, s2, 0.9)))
 if __name__ == "__main__":
-    data = {'payroll': {'LITTLE OAKS      DES:DIRECT DEP ID:3725528277044H2  INDN:WRIGHT,KATHERINE A      CO 7': ['DES:DIRECT DEP', 860.47], 'Cash App*Cash   10/02 #000178531 PMNT RCVD Cash App*Cash Out  Visa Direct   CA 9': ['PMNT RCVD', 24.62], 'LITTLE OAKS      DES:DIRECT DEP ID:6380716844184H2  INDN:WRIGHT,KATHERINE A      CO 12': ['DES:DIRECT DEP', 836.63], 'AF247.com       10/16 #000244836 PMNT RCVD AF247.com          Visa Direct   TN 13': ['PMNT RCVD', 300.0], 'LITTLE OAKS      DES:DIRECT DEP ID:3725528277054H2  INDN:WRIGHT,KATHERINE A      CO 22': ['DES:DIRECT DEP', 50.0], 'LITTLE OAKS      DES:DIRECT DEP ID:6380716844194H2  INDN:WRIGHT,KATHERINE A      CO 33': ['DES:DIRECT DEP', 50.0]}, 'credit card': {}, 'loan': {}}
+    data = {'payroll': {'Direct Deposit - Payroll Blue Cross Blue 1': ['payroll', 818.45], 'Direct Deposit - Payroll Frontier Communi 4': ['payroll', 679.55], 'Direct Deposit - Payroll Blue Cross Blue 6': ['payroll', 738.11], 'Direct Deposit - Payroll Frontier Communi 8': ['payroll', 0.02]}, 'credit card': {'Web Pmt Single - CC Pymt 28': ['CC PYMT', 28.0]}, 'loan': {}}
 
 
-    obj = BOAExtractSum()
+    obj = PNCExtractSum()
 
     emp, empee, ccpro,directDepositAmounts = obj.extract_summ_info(data)
     print(emp)

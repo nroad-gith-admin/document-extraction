@@ -12,8 +12,38 @@ import numpy as np
 import re
 import os
 from fuzzywuzzy import fuzz
+from extract_electronics import ExtractElectronics
+import configparser,os
 
 
+
+config_file_loc = os.path.join(os.path.dirname(os.path.realpath(__file__)), "..", "..", "config", "bankstatement.cfg")
+config_obj = configparser.ConfigParser()
+
+
+
+try:
+    config_obj.read(config_file_loc)
+    account = (config_obj.get("JPMC", "account"))
+    routing = (config_obj.get("JPMC", "routing"))
+    begBalanceKey = (config_obj.get("JPMC", "begBalanceKey"))
+    begBalanceKey = begBalanceKey.split(",")
+
+    endBalanceKey = (config_obj.get("JPMC", "endBalanceKey"))
+    endBalanceKey = endBalanceKey.split(",")
+
+    withdrawlKey = (config_obj.get("JPMC", "withdrawlKey"))
+    withdrawlKey = withdrawlKey.split(",")
+
+    accountTypeKey = (config_obj.get("JPMC", "accountTypeKey"))
+    accountTypeKey = accountTypeKey.split(",")
+    accountTypeKey = [i.replace(":",",") for i in accountTypeKey]
+
+    endDate = (config_obj.get("JPMC", "endDate"))
+    endDate = endDate.split(",")
+
+except Exception as e:
+    raise Exception("Config file error: " + str(e))
 
 class TableJPMCInfoExtraction:
     def isDate(self,val):
@@ -77,11 +107,12 @@ class TableJPMCInfoExtraction:
             self.average_daily_balance = [str(i[8]).strip() for i in keywordList if str(i[8]) != 'nan']
             self.average_daily_balance = list(set(self.average_daily_balance))
 
-            self.begBalanceKey = ["Beginning Balance",]
-            self.endBalanceKey = ["Ending Balance"]
-            self.withdrawlKey = ["ATM & Debit Card Withdrawals","Electronic Withdrawals","Fees","Checks Paid"]
-            self.endDateKeys = ["through"]
-            self.accountTypeKey = ["SUMMARY"]
+            self.begBalanceKey = begBalanceKey
+            self.endBalanceKey = endBalanceKey
+            self.withdrawlKey =withdrawlKey
+            self.withdrawlKey = [i.lower().strip() for i in self.withdrawlKey]
+            self.endDateKeys = endDate
+            self.accountTypeKey = accountTypeKey
             # print(self.payroll_keywords)
         except Exception as e:
             raise Exception("Failed to extract values for payroll_keywords, cc_keywords, loan_keywords. Reason: "+str(e))
@@ -130,6 +161,19 @@ class TableJPMCInfoExtraction:
 
         return val
 
+    def extract_amount_key(self,dataRow, keywords ):
+        dataRow = dataRow.lower()
+        for keys in keywords:
+            keyword = keys.lower()
+            # if re.search(r"\b" + keyword.lower() + r"\b", dataRow.lower()):
+            if dataRow.lower().startswith(keyword.lower()):
+                before_keyword, keyword, after_keyword = dataRow.partition(keyword)
+                after_keyword = after_keyword.split()
+                amounts = [self.__format_amount__(i) for i in after_keyword if self.isAmount(i) == True]
+                if len(amounts)>0:
+                    return amounts[0], keyword
+
+        return None,None
     def getTableInfo(self, filepath, descriptionCol, depositCol, withdrawCol,edge_tol=85):
         depositAmount = 0
         averageBalance = 0
@@ -138,140 +182,56 @@ class TableJPMCInfoExtraction:
         endDate = ""
         withdrawlBalances = []
         accountType = ""
+        self.extractElecObj = ExtractElectronics(filepath)
+        numPage = self.extractElecObj.num_page()
+        data = []
+        for i in list(range(numPage)):
+            data.extend(self.extractElecObj.read_page(pageNums=[i, ], typeOut='blocks')[0])
 
-        try:
-            pdf = PdfFileReader(open(filepath, 'rb'))
-        except Exception as e:
-            raise Exception("Failed to read the file: "+str(filepath)+" Reason: "+str(e))
-        num_pages = pdf.getNumPages()
-        try:
-            for page in range(1, num_pages + 1):
-                try:
-                    tables = self.tableCamelotObj.extract_table(filepath, str(page),edge_tol)
-                except:
-                    continue
+        data =  [str(i[-3]) for i in data if str(i[-3]).strip() != '']
+        newData = []
+        for d in data:
+            newData.extend(d.split("\n"))
+        data = newData
+        lastExtractedVal = None
+        for data_index, dataRow in enumerate(data):
+            if depositAmount == 0:
+                extactedVal, foundKey = self.extract_amount_key(dataRow, self.deposits)
+                if extactedVal!=None:
+                    depositAmount = extactedVal
+            if begBalance == 0:
+                extactedVal,foundKey = self.extract_amount_key(dataRow, self.begBalanceKey)
+                if extactedVal != None:
+                    begBalance = extactedVal
+            if endBalance == 0:
+                extactedVal,foundKey = self.extract_amount_key(dataRow, self.endBalanceKey)
+                if extactedVal != None:
+                    endBalance = extactedVal
+            # if endBalance == 0:
+            extactedVal,foundKey = self.extract_amount_key(dataRow, self.withdrawlKey)
+            if extactedVal!= None and lastExtractedVal ==None:
 
-                tables = list(set(tables))
-                if len(tables) > 1:
-                    new_t = []
-                    removed_table = []
-                    done_comparing_index = {}
-                    for i in range(len(tables)):
-                        for j in range(len(tables)):
-                            report1 = tables[i].parsing_report
-                            report2 = tables[j].parsing_report
-                            if report1["accuracy"] != 100 and report2["accuracy"] != 100:
-                                if i != j:
-                                    try:
-                                        if j in done_comparing_index[i]:
-                                            pass
-                                        else:
-                                            raise Exception()
-                                    except:
-                                        try:
-                                            done_comparing_index[j].append(i)
-                                        except:
-                                            done_comparing_index[j] = []
-                                            done_comparing_index[j].append(i)
-
-                                        if check_table_inside_table(tables[i], tables[j]) == True:
-
-                                            removed_table.append(tables[i])
-
-                                        elif check_table_inside_table(tables[j], tables[i]) == True:
-
-                                            removed_table.append(tables[j])
-                    for i in tables:
-                        if i not in removed_table:
-                            new_t.append(i)
-                    tables = list(set(new_t))
-
-                for table_i in range(len(tables)):
-                    data = tables[table_i].df
-                    data = data.applymap(clean_pandas)
-                    d = data.replace(r'^\s*$', np.nan, regex=True)
-                    d = d.isnull().all()
-                    ind = d.index[d].tolist()
-                    if len(ind) > 0:
-                        data = data.drop(ind, axis=1)
-                    report = tables[table_i].parsing_report
-
-                    last_data_interated = None
-                    for data_index, d in data.iterrows():
-                        d1 = df_to_list(d)
-                        try:
+                withdrawlBalances.append(extactedVal)
+                lastExtractedVal = foundKey
+            elif extactedVal!=None and lastExtractedVal != None and lastExtractedVal in self.withdrawlKey:
+                withdrawlBalances.append(extactedVal)
+                lastExtractedVal = foundKey
+            elif lastExtractedVal!=None:
+                lastExtractedVal = foundKey
 
 
-                            if averageBalance==0:
-                                for k in self.average_daily_balance:
-                                    for dii, di in enumerate(d):
-                                        if re.search(r"\b" + k.lower() + r"\b", di.lower()):
-                                            try:
-                                                averageBalanceD1 = [i.lower().strip() for i in d1 if i.strip() != '']
-                                                averageBalance = averageBalanceD1[averageBalanceD1.index(k.lower())+1]
-                                                break
-                                            except:
-                                                pass
-                            if depositAmount==0:
-                                for k in self.deposits:
-                                    if page ==1 or page==2 or page==3:
-                                        for d_i in d1:
-                                            if  k.lower() == d_i.lower():
-                                                d1 = [d1i.lower() for d1i in d1 if d1i.strip()!='']
-                                                ind = d1.index(k.lower())
-                                                if len(d1)> ind+1:
-                                                    if self.checkMoney(d1[ind+1]) == True:
-                                                        depositAmount = self.__format_amount__((d1[ind+1]))
+            if endDate=='':
+                for keys in self.endDateKeys:
+                    if keys in dataRow:
+                        enddateSplitted = dataRow.split(keys)
+                        endDate = enddateSplitted[-1]
 
-                                                break
-
-                            if begBalance == 0:
-                                for k in self.begBalanceKey:
-                                    if k.lower() in " ".join(d1).lower():
-                                        d1 = [d1i.lower() for d1i in d1 if d1i.strip() != '']
-                                        words = " ".join(d1).split()
-                                        words = [self.__format_amount__(i) for i in words if self.isAmount(i)==True]
-                                        begBalance = words[0]
-                                        # print(begBalance)
-                            if endBalance==0:
-                                for k in self.endBalanceKey:
-                                    if k.lower() in " ".join(d1).lower():
-                                        d1 = [d1i.lower() for d1i in d1 if d1i.strip() != '']
-                                        words = " ".join(d1).split()
-                                        words = [i for i in words if self.isAmount(i)==True]
-                                        endBalance = self.__format_amount__(words[0])
-                                        endDate = " ".join(d1).lower().replace(k.lower(),"").replace(words[0],"").strip()
-                            if endDate == "":
-                                w = " ".join(d1)
-                                for endDateKey in self.endDateKeys:
-                                    if endDateKey in w:
-                                        enddateSplitted = w.split("through")
-                                        endDate = enddateSplitted[-1]
-
-
-                            for k in self.withdrawlKey:
-                                if " ".join(d1).lower().startswith(k.lower()):
-                                    d1 = [d1i.lower() for d1i in d1 if d1i.strip() != '']
-                                    words = " ".join(d1).split()
-                                    words = [self.__format_amount__(i) for i in words if self.isAmount(i)==True]
-                                    withdrawlBalances.append(words[0])
-
-                            if accountType == "":
-                                w = " ".join(d1)
-                                for accountTypeKeys in self.accountTypeKey:
-                                    if accountTypeKeys in w:
-                                        splittedWords = w.split(accountTypeKeys)
-                                        splittedWords = [i for i in splittedWords if i.strip()!='']
-                                        accountType = splittedWords[0]
-
-
-                        except IndexError as e:
-                            pass
-
-                        last_data_interated = d1
-
-        except Exception as e:
-            raise Exception("Something messed up. Reason: "+str(e))
+            if accountType=='':
+                for keys in self.accountTypeKey:
+                    if keys in dataRow:
+                        splittedWords = dataRow.split(keys)
+                        splittedWords = [i for i in splittedWords if i.strip() != '']
+                        accountType = splittedWords[0]
 
         withdrawlBalances = sum(withdrawlBalances)
         return depositAmount, averageBalance, begBalance, endBalance, withdrawlBalances, endDate, accountType
@@ -281,34 +241,34 @@ if __name__=="__main__":
     filepath  = r'/Users/prasingh/Prashant/Prashant/CareerBuilder/Extraction/data/BankStatementPDF/0064O00000jc6nkQAA-00P4O00001Jjzq1UAB-joseph_allen_last_60_days_of_b.pdf'
     # filepath  = r'/Users/prasingh/Prashant/Prashant/CareerBuilder/Extraction/data/bankstatements/0060B00000iAQfVQAW-00P4O00001Ic6HpUAJ-bryan_niles_last_60_days_of_ba.pdf'
     # filepath  = r'/Users/prasingh/Prashant/Prashant/CareerBuilder/Extraction/data/BankStatements2/006am4O00000aDJ3zQAG-00P4O00001IbjsmUAB-Pat May BS.pdf'
-    filepath  = r'/Users/prasingh/Prashant/Prashant/CareerBuilder/Extraction/data/NEW_BANK/other bank/BB_T BANK/0064O00000k74XZQAY-00P4O00001Jjt9dUAB-Bank Statement.pdf'
-    filepath = r"/Users/prasingh/Prashant/Prashant/CareerBuilder/Extraction/data/BS_NT/BS_BOA_Test"
-    filepath = r"/Users/prasingh/Prashant/Prashant/CareerBuilder/Extraction/data/BS_NT/BS_JPMC/0064O00000kKWoeQAG-00P4O00001KS1zpUAD-Bank Statement.pdf"
-    depositAmount, averageDailyBalance, beg, end, withdraw, endDate, accounttype  = tableInfoObj.getTableInfo(
-        os.path.join(filepath), 1, 2, 2)
-    print("beg amounts: ", beg)
-    print("end amounts: ", end)
-    print("with amounts: ", withdraw)
-    print("end date: ", endDate)
-    print("accounttype: ", accounttype)
-    print("depositAmount: ", depositAmount)
-    print("averageDailyBalance: ", averageDailyBalance)
+    # filepath  = r'/Users/prasingh/Prashant/Prashant/CareerBuilder/Extraction/data/NEW_BANK/other bank/BB_T BANK/0064O00000k74XZQAY-00P4O00001Jjt9dUAB-Bank Statement.pdf'
+    # filepath = r"/Users/prasingh/Prashant/Prashant/CareerBuilder/Extraction/data/BS_NT/BS_BOA_Test"
+    # filepath = r"/Users/prasingh/Prashant/Prashant/CareerBuilder/Extraction/data/BS_NT/BS_JPMC/0064O00000k8zFYQAY-00P4O00001KC3bdUAD-__last_60_days_of_bank_stateme.pdf"
+    # depositAmount, averageDailyBalance, beg, end, withdraw, endDate, accounttype  = tableInfoObj.getTableInfo(
+    #     os.path.join(filepath), 1, 2, 2)
+    # print("beg amounts: ", beg)
+    # print("end amounts: ", end)
+    # print("with amounts: ", withdraw)
+    # print("end date: ", endDate)
+    # print("accounttype: ", accounttype)
+    # print("depositAmount: ", depositAmount)
+    # print("averageDailyBalance: ", averageDailyBalance)
 
 
-    # folderpath = r"/Users/prasingh/Prashant/Prashant/CareerBuilder/Extraction/data/BS_NT/BS_JPMC"
-    #
-    # for file in os.listdir(folderpath):
-    #     if ".pdf" in file:
-    #         print(file)
-    #         filepath = os.path.join(folderpath, file)
-    #         depositAmount, averageDailyBalance, beg, end, withdraw, endDate,accounttype = tableInfoObj.getTableInfo(
-    #             os.path.join(filepath), 1, 2, 2)
-    #         print("beg amounts: ", beg)
-    #         print("end amounts: ", end)
-    #         print("with amounts: ", withdraw)
-    #         print("end date: ", endDate)
-    #         print("accounttype: ", accounttype)
-    #         print("depositAmount: ", depositAmount)
-    #         print("averageDailyBalance: ", averageDailyBalance)
-    #         print("-------------------------")
+    folderpath = r"/Users/prasingh/Prashant/Prashant/CareerBuilder/Extraction/data/BS_NT/BS_JPMC_Test"
+
+    for file in os.listdir(folderpath):
+        if ".pdf" in file:
+            print(file)
+            filepath = os.path.join(folderpath, file)
+            depositAmount, averageDailyBalance, beg, end, withdraw, endDate,accounttype = tableInfoObj.getTableInfo(
+                os.path.join(filepath), 1, 2, 2)
+            print("beg amounts: ", beg)
+            print("end amounts: ", end)
+            print("with amounts: ", withdraw)
+            print("end date: ", endDate)
+            print("accounttype: ", accounttype)
+            print("depositAmount: ", depositAmount)
+            print("averageDailyBalance: ", averageDailyBalance)
+            print("-------------------------")
             # break

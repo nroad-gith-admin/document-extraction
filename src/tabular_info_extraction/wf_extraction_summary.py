@@ -4,7 +4,7 @@ from fuzzywuzzy import fuzz, process
 from string import punctuation
 from nltk import ngrams
 
-payrollkeywords = ['Direct Dep','Dir Dep', 'payroll', 'Payrll Dep']
+payrollkeywords = ['Direct Dep','Dir Dep']
 checkkeywords = ['CREDIT CARDS Bill Payment', "Credit Card Bill Payment"]
 
 
@@ -48,6 +48,11 @@ class WFExtractSum:
             self.average_daily_balance = [str(i[8]).strip() for i in keywordList if str(i[8]) != 'nan']
             self.average_daily_balance = list(set(self.average_daily_balance))
             self.punctList = list(set(punctuation))
+
+            self.directdep_keywords = [str(i[11]).strip() for i in keywordList if str(i[11]) != 'nan']
+            self.directdep_keywords = list(set(self.directdep_keywords))
+            print(self.directdep_keywords)
+
         except Exception as e:
             raise Exception(
                 "Failed to extract values for payroll_keywords, cc_keywords, loan_keywords. Reason: " + str(e))
@@ -103,11 +108,14 @@ class WFExtractSum:
         if 'payroll' in summ:
             for des, desVal in summ['payroll'].items():
                 des = des.lower()
-                for k in payrollkeywords:
+                for k in self.directdep_keywords:
+
                     k = k.lower()
                     wordsMatched, newdes = (self.matches(des, k, 0.9))
                     newdes
                     if wordsMatched != None:
+                        directDepositAmounts.append(self.__format_amount__(str(desVal[1])))
+
                         desplited = newdes.split(k)
                         if len(desplited) >0:
                             employerName.append(desplited[0].strip())
@@ -118,10 +126,7 @@ class WFExtractSum:
                                 if lenInt>5:
                                     allempnames= ' '.join(desSplitted[desSplitted.index(desSp)+1: -1])
                                     employeeName.extend(allempnames.split(","))
-                                    break
-                            # startInd = [i for i in desSplitted self. ]
-                            # desSplitted = desSplitted[-2]
-                            # employeeName.extend(desSplitted.split(","))
+                        break
         if 'credit card' in summ:
             for des, desVal in summ['credit card'].items():
                 des = des.lower()
@@ -134,6 +139,7 @@ class WFExtractSum:
                         desSplitted = newdes.split(wordsMatched)
                         if len(desSplitted)>0:
                             creditCardProvider.append(desSplitted[0].strip())
+                            break
             # except:
             #     pass
 
@@ -148,7 +154,7 @@ class WFExtractSum:
 # s2 = "credit card"
 # print( list(matches(s1, s2, 0.9)))
 if __name__ == "__main__":
-    data = {'payroll': {'J.B. Hunt Transp Payroll 180308 180308285202 Romas Faircloth 0': ['payroll', 682.77], 'Vacp Treas 310 Xxva Benef 033018 xxxxx3962003600 Ref*48*VA Compensation *03/01/18-03 5': ['compensation', 78.15]}, 'credit card': {'Synchrony Bank CC Pymt Mar 08 601918323312816 Melissa K Faircloth 6': ['CC PYMT', 76.0]}, 'loan': {}}
+    data = {'payroll': {'Ferguson Enterpr Dir Dep 190802 1908022001060 Thomas Crunk 2': ['Dir Dep ', 1346.72], 'Ferguson Enterpr Dir Dep 190802 1908021024816 Chelsea Crunk 3': ['Dir Dep ', 1512.13], 'Ferguson Enterpr Dir Dep 190816 1908161024816 Chelsea Crunk 6': ['Dir Dep ', 511.18], 'Ferguson Enterpr Dir Dep 190816 1908162001060 Thomas Crunk 7': ['Dir Dep ', 1295.43], 'Edeposit IN Branch/Store 08/22/19 12:27:20 Pm 850 Barrett Pkwy Kennesaw GA 9748 9': ['Edeposit IN', 200.0]}, 'credit card': {}, 'loan': {'Fedloanservicing Stdnt Loan 190816 6Nfliannae1 Chelsea E Knowles 80': ['Stdnt Loan', 291.28]}}
 
 
     obj = WFExtractSum()

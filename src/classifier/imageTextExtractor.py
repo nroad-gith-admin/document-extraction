@@ -13,13 +13,10 @@ from scipy.ndimage import interpolation as inter
 from skimage.transform import hough_line, hough_line_peaks
 from skimage.feature import canny
 from skimage.transform import rotate
-
 # LOG_DIR = "logs"
 # current_dir_path = os.path.dirname(os.path.abspath(__file__))
 # new_path = (os.path.abspath(os.path.join(current_dir_path, os.pardir)))
 config_file_loc = os.path.join(os.path.dirname(os.path.realpath(__file__)), "Config.cfg")
-
-# config_file_loc = "Config.cfg"
 config_obj = configparser.ConfigParser()
 
 try:
@@ -412,7 +409,9 @@ class ImageTextExtractor:
             greyScale_image = orig_im.convert('L')
             array_image = np.asarray(greyScale_image)
             array_image = array_image / 255
+
             deskewed_img = self.deskew(array_image)
+
             if deskewed_img is None:
                 deskewed_img = array_image
             after_deskew_img = Image.fromarray(np.uint8(deskewed_img * 255), 'L')
@@ -450,7 +449,6 @@ class ImageTextExtractor:
                 text_im = after_deskew_img.crop(new_crop)
                 text_im = self.remove_shadows(text_im)
                 text_im_deskewed = self.deskew_partial(text_im)
-                # text_im_deskewed.show()
                 img_txt = pytesseract.image_to_string(text_im_deskewed, lang="eng", config='--psm 6').strip()
                 if len(img_txt) == 0:
                     img_txt = pytesseract.image_to_string(text_im, lang="eng", config='--psm 6').strip()
@@ -460,9 +458,9 @@ class ImageTextExtractor:
 
                     # print(img_txt)
                     # print("---------------")
-                    # text_segments.append(" ".join(img_txt))
                     text_segments.append(" NEWLINE ".join(img_txt))
-
+                    #
+                    # text_segments.append("   ".join(img_txt))
             # text_img = "\n\n\n".join(text_segments)
             # text_segments = text_img.split("\n\n\n")
             # text_segments = [t.strip() for t in text_segments if len(t.strip())]
@@ -480,7 +478,7 @@ class ImageTextExtractor:
 if __name__ == "__main__":
     obj = ImageTextExtractor()
     import time
-    img = Image.open(r"/Users/prasingh/Prashant/Prashant/CareerBuilder/pdftablereader/Bank_Statement_Parser/BankStatementParser/main/TableExtractor/Citibank/src/working/[0].jpg")
+    img = Image.open(r"/Users/prasingh/Prashant/Prashant/CareerBuilder/ExtractionCode/src/image_data_extraction/working/0.jpg")
     st_time = time.time()
     text_seg = obj.process_image(img)
     print(text_seg)

@@ -10,9 +10,9 @@ from tabular_info_extraction.boa_table_info import TableBOAInfoExtraction
 from staticCode.boa_static import ExtractBOA
 from tabular_data_extraction.format1.extract_table_info2 import TableInfoExtraction2
 from qa_checks.checks import check_all
+from negative_days.negative_days import negative_days_count
 
-
-class BankExtraction:
+class BOABankExtraction:
 
     def __init__(self):
         self.extractDataImgObj = ExtractDataImage()
@@ -45,6 +45,7 @@ class BankExtraction:
 
     def extractBankStatement(self, pdfFile, pdfFileData, params, docID):
         payroll_amounts, cc_amounts, loan_amounts, deposits, averageBalance, summdata = "", "", "", "", "", None
+        lenData = 0
         descriptionCol, depositCol, withdrawCol = params[0],params[1],params[2]
         BankData = {}
         try:
@@ -61,11 +62,14 @@ class BankExtraction:
 
             data = self.dataExtObjBoa.get_classified(statementData)
 
-            payroll_amounts, cc_amounts, loan_amounts, summdata = self.tableInfoObj2.getTableInfo(
+            payroll_amounts, cc_amounts, loan_amounts, lenData, additionData, deductionData, summdata = self.tableInfoObj2.getTableInfo(
                 pdfFile, 1, 2, 2)
+            print(summdata)
+
             employerNames, employeeName, ccProviders, directDepositAmounts = self.boaSummaryExtraction.extract_summ_info(summdata)
             deposits, averageBalance, begBalance, endBalance, withdrawAmounts, endDate, accounttype = self.tableInfoObjBOA.getTableInfo(
                 pdfFile, descriptionCol, depositCol, withdrawCol)
+            negativeDayeCount = negative_days_count(additionData, deductionData, begBalance)
 
 
             new_s = {}
@@ -116,7 +120,6 @@ class BankExtraction:
             BankData["EmployersName"] = employerNames
             BankData["CCProviders"] = ccProviders
             BankData["DirectDepositsAmounts"] = directDepositAmounts
-
             BankData["averageDailyBalance"] = averageBalance
             BankData["loanDeposits"] = -9999.99
             BankData["payrollDeposits"] = (payroll_amounts)
@@ -124,6 +127,8 @@ class BankExtraction:
             BankData["loanPayments"] = (loan_amounts)
             BankData["directDeposits"] = (deposits)
             BankData["SummaryInfo"] = (summdata)
+            BankData["NegativeDaysCount"] = (negativeDayeCount)
+            BankData["At least 10 transactions"] =lenData>10
             # BankData["uniqueId"] = self.extractUniqueID(pdfFile)
 
 
@@ -157,7 +162,7 @@ class BankExtraction:
              "Payroll Deposits", "Direct Deposits", "CC Payments", "Loan Payments",
              "Account Type", "Member Account Number(may be present)", "Current Balance", "Withdrawls / Debits",
              "As of Date", "Average Balance", "Negative Days", "Competitor Name", "Direct Deposit employer name",
-             "Direct Deposit employee name", "Payroll Deposit", "employer name", "Credit Card Provider Name",
+             "Direct Deposit employee name", "Payroll Deposit employer name", "Credit Card Provider Name",
              "ACH Debits(Yes or No)", "At least 10 transactions"]
 
             excelRow = 0
@@ -174,7 +179,7 @@ class BankExtraction:
             sheet.write(excelRow, 7, BankData["averageDailyBalance"])
             sheet.write(excelRow, 8, BankData["loanDeposits"])
             sheet.write(excelRow, 9, BankData["payrollDeposits"])
-            sheet.write(excelRow, 10, BankData["directDeposits"])
+            sheet.write(excelRow, 10, BankData["DirectDepositsAmounts"])
             sheet.write(excelRow, 11, BankData["CCPayments"])
             sheet.write(excelRow, 12, BankData["loanPayments"])
             sheet.write(excelRow, 13, BankData["accountType"])
@@ -183,15 +188,14 @@ class BankExtraction:
             sheet.write(excelRow, 16,  BankData["totalWithdraw"])
             sheet.write(excelRow, 17,  BankData["ToDate"])
             sheet.write(excelRow, 18,  BankData["averageDailyBalance"])
-            sheet.write(excelRow, 19, '')
+            sheet.write(excelRow, 19, BankData["NegativeDaysCount"])
             sheet.write(excelRow, 20,  '')
             sheet.write(excelRow, 21,  BankData["EmployersName"])
             sheet.write(excelRow, 22,  BankData["EmployeeNames"])
-            sheet.write(excelRow, 23,  BankData["payrollDeposits"])
-            sheet.write(excelRow, 24,  BankData["EmployersName"])
-            sheet.write(excelRow, 25,  BankData["CCProviders"])
-            sheet.write(excelRow, 26,  '')
-            sheet.write(excelRow, 27,  '')
+            sheet.write(excelRow, 23,  BankData["EmployersName"])
+            sheet.write(excelRow, 24,  BankData["CCProviders"])
+            sheet.write(excelRow, 25,  '')
+            sheet.write(excelRow, 26,  lenData>10)
 
             # sheet.write(excelRow, 13, str(data["SummaryInfo"]))
             workbook.save(fileToWrite)
@@ -230,7 +234,7 @@ if __name__=="__main__":
             file = os.path.join(pdffiles, file)
 
 
-            obj = BankExtraction()
+            obj = BOABankExtraction()
 
 
             d=obj.extractBankStatement(file,pdfDataPath,[1,2,2,],pdfDataPath.split("/")[-1])

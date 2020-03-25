@@ -201,10 +201,10 @@ class ImageTextExtractor:
         new_c_info = []
         for c in c_info:
             new_crop = c
-            # if self.check_if_exists_in_array(c, new_c_info):
-            #     continue
-            # else:
-            new_c_info.append(new_crop)
+            if self.check_if_exists_in_array(c, new_c_info):
+                continue
+            else:
+                new_c_info.append(new_crop)
         new_c_info = [(c["x1"],c["y1"],c["x2"],c["y2"]) for c in new_c_info]
         return new_c_info
         # except Exception as e:

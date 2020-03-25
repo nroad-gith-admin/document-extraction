@@ -188,14 +188,16 @@ def get_formatted(data, dateCol, desCol, depositCol, withdrawCol, lenAmount, hea
                                 if deductionFlag == 1 or additionFlag==1:
                                     if tempList[depositCol]!='':
                                         newTempList = []
-                                        newTempList.extend([tempList[0], tempList[1], tempList[depositCol]])
-                                        newdataAddition.append(newTempList)
-                                        lastAddedCol = 'deposit'
+                                        if  isAmount(tempList[depositCol]):
+                                            newTempList.extend([tempList[0], tempList[1], tempList[depositCol]])
+                                            newdataAddition.append(newTempList)
+                                            lastAddedCol = 'deposit'
                                     if tempList[withdrawCol]!='':
                                         newTempList = []
-                                        newTempList.extend([tempList[0], tempList[1], tempList[withdrawCol]])
-                                        newdataDeduction.append(newTempList)
-                                        lastAddedCol = 'withdraw'
+                                        if isAmount(tempList[withdrawCol]):
+                                            newTempList.extend([tempList[0], tempList[1], tempList[withdrawCol]])
+                                            newdataDeduction.append(newTempList)
+                                            lastAddedCol = 'withdraw'
                             else:
                                 if deductionFlag == 1:
                                     newdataDeduction.append(tempList)

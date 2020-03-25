@@ -4,8 +4,8 @@ from fuzzywuzzy import fuzz, process
 from string import punctuation
 from nltk import ngrams
 
-payrollkeywords = ['Federal Benefit Deposit',]
-checkkeywords = ['CREDIT CARDS Bill Payment', "Credit Card Bill Payment"]
+# payrollkeywords = ['Federal Benefit Deposit',]
+# checkkeywords = ['CREDIT CARDS Bill Payment', "Credit Card Bill Payment"]
 
 
 class USExtractSum:
@@ -48,6 +48,11 @@ class USExtractSum:
             self.average_daily_balance = [str(i[8]).strip() for i in keywordList if str(i[8]) != 'nan']
             self.average_daily_balance = list(set(self.average_daily_balance))
             self.punctList = list(set(punctuation))
+
+            self.directdep_keywords = [str(i[11]).strip() for i in keywordList if str(i[11]) != 'nan']
+            self.directdep_keywords = list(set(self.directdep_keywords))
+
+
         except Exception as e:
             raise Exception(
                 "Failed to extract values for payroll_keywords, cc_keywords, loan_keywords. Reason: " + str(e))
@@ -100,16 +105,19 @@ class USExtractSum:
         if 'payroll' in summ:
             for des, desVal in summ['payroll'].items():
                 des = des.lower()
-                for k in payrollkeywords:
+                for k in self.directdep_keywords:
                     k = k.lower()
                     if re.search(r"\b" + k.lower() + r"\b", des.lower()):
                         desplited = des.split(k)
                         if len(desplited) >0:
                             employerName.append(desplited[0].strip())
+                            directDepositAmounts.append(self.__format_amount__(str(desVal[1])))
+
                             desplited = [j for i in desplited for j in i.split() if "INDN:".lower() in j]
                             if len(desplited)>0:
                                 employeeName.extend(desplited[0].replace("INDN:".lower(),"").strip().split(","))
-                                directDepositAmounts.append(self.__format_amount__(str(desVal[1])))
+                            break
+
         if 'credit card' in summ:
             for des, desVal in summ['credit card'].items():
                 des = des.lower()
@@ -122,6 +130,7 @@ class USExtractSum:
                         desSplitted = newdes.split(wordsMatched)
                         if len(desSplitted)>0:
                             creditCardProvider.append(desSplitted[0].strip())
+                            break
 
         directDepositAmounts = sum(directDepositAmounts)
         return ", ".join(list(set(employerName))), ", ".join(list(set(employeeName))), ", ".join(list(set(creditCardProvider))),directDepositAmounts

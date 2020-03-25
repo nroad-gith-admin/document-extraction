@@ -4,8 +4,6 @@ from fuzzywuzzy import fuzz, process
 from string import punctuation
 from nltk import ngrams
 
-payrollkeywords = ['Direct Dep','Dir Dep']
-checkkeywords = ['CREDIT CARDS Bill Payment', "Credit Card Bill Payment"]
 
 
 class JPMCExtractSum:
@@ -47,6 +45,10 @@ class JPMCExtractSum:
 
             self.average_daily_balance = [str(i[8]).strip() for i in keywordList if str(i[8]) != 'nan']
             self.average_daily_balance = list(set(self.average_daily_balance))
+
+            self.directdep_keywords = [str(i[11]).strip() for i in keywordList if str(i[11]) != 'nan']
+            self.directdep_keywords = list(set(self.directdep_keywords))
+
             self.punctList = list(set(punctuation))
         except Exception as e:
             raise Exception(
@@ -100,7 +102,7 @@ class JPMCExtractSum:
         if 'payroll' in summ:
             for des, desVal in summ['payroll'].items():
                 des = des.lower()
-                for k in payrollkeywords:
+                for k in self.directdep_keywords:
                     k = k.lower()
                     if re.search(r"\b" + k.lower() + r"\b", des.lower()):
                         desplited = des.split(k)
@@ -110,6 +112,7 @@ class JPMCExtractSum:
                             desplited = [j for i in desplited for j in i.split() if "INDN:".lower() in j]
                             if len(desplited)>0:
                                 employeeName.extend(desplited[0].replace("INDN:".lower(),"").strip().split(","))
+                            break
 
         if 'credit card' in summ:
             for des, desVal in summ['credit card'].items():
@@ -123,6 +126,7 @@ class JPMCExtractSum:
                         desSplitted = newdes.split(wordsMatched)
                         if len(desSplitted)>0:
                             creditCardProvider.append(desSplitted[0].strip())
+                            break
 
         directDepositAmounts = sum(directDepositAmounts)
         return ", ".join(list(set(employerName))), ", ".join(list(set(employeeName))), ", ".join(list(set(creditCardProvider))),directDepositAmounts

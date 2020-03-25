@@ -17,6 +17,9 @@ from staticCode.us_static import ExtractUS
 from tabular_data_extraction.format1.extract_table_info2 import TableInfoExtraction2
 from tabular_data_extraction.format2.extract_table_info3 import TableInfoExtraction3
 from qa_checks.checks import check_all
+from negative_days.negative_days import negative_days_count
+
+
 # dataExtObj = DataExtractor()
 extractDataImgObj = ExtractDataImage()
 dataExtObj = ExtractWellsFargo()
@@ -31,7 +34,7 @@ tableInfoObj3 = TableInfoExtraction3()
 wfSummaryExtraction = WFExtractSum()
 
 
-class BankExtraction:
+class WFBankExtraction:
 
 
     def isBankStatement(self,data):
@@ -56,6 +59,7 @@ class BankExtraction:
     def extractBankStatement(self, pdfFile, pdfFileData, params, docID):
         payroll_amounts, cc_amounts, loan_amounts, deposits, averageBalance, summdata = "", "", "", "", "", None
         descriptionCol, depositCol, withdrawCol = params[0],params[1],params[2]
+        lenData = 0
         BankData = {}
         # try:
 
@@ -85,7 +89,7 @@ class BankExtraction:
         allheaders.append(headers1)
         allheaders.append(headers2)
 
-        payroll_amounts, cc_amounts, loan_amounts, summdata = tableInfoObj3.getTableInfo(pdfFile, None,
+        payroll_amounts, cc_amounts, loan_amounts, lenData, additionData, deductionData, summdata = tableInfoObj3.getTableInfo(pdfFile, None,
                                                                                         dateCol=0, desCol=2,
                                                                                         depositCol=-3,
                                                                                         withdrawCol=-2,
@@ -94,8 +98,12 @@ class BankExtraction:
                                                                                         headers=allheaders,
                                                                                         additionKeywords=additionKeywords,
                                                                                         deductionKeywords=deductionKeywords)
+
         employerNames, employeeName, ccProviders, directDepositAmounts = wfSummaryExtraction.extract_summ_info(
             summdata)
+
+        negativeDayeCount = negative_days_count(additionData, deductionData, begBalance)
+
         new_s = {}
         for k, v in data.items():
             max_val = max(v.values())
@@ -139,6 +147,7 @@ class BankExtraction:
             BankData["EmployeeNames"] = employeeName
             BankData["EmployersName"] = employerNames
             BankData["CCProviders"] = ccProviders
+            BankData["DirectDepositsAmounts"] = directDepositAmounts
 
             BankData["averageDailyBalance"] = averageBalance
             BankData["loanDeposits"] = -9999.99
@@ -147,6 +156,9 @@ class BankExtraction:
             BankData["loanPayments"] = (loan_amounts)
             BankData["directDeposits"] = (deposits)
             BankData["SummaryInfo"] = (summdata)
+            BankData["At least 10 transactions"] =lenData>10
+            BankData["NegativeDaysCount"] = (negativeDayeCount)
+
             # BankData["uniqueId"] = self.extractUniqueID(pdfFile)
 
 
@@ -171,15 +183,20 @@ class BankExtraction:
             workbook = xlwt.Workbook()
             sheet = workbook.add_sheet('Top Banks Data')
 
-            headers = ["Sr.No", "Unique ID", "Documentation ID and Name", "Name on the Account", "Bank Name",
-                       "Account Number",
-                       "Routing Number (if available)", "Average Daily Balance (if available)",
-                       "Loan Deposits", "Payroll Deposits", "Direct Deposits", "CC Payments", "Loan Payments"]
+            headers = ["Opp. ID", "Batch ID", "File ID / Name", "Name on the Account", "Bank Name", "Account Number",
+                       "Routing Number (if available)", "Average Daily Balance (if available)", "Loan Deposits",
+                       "Payroll Deposits", "Direct Deposits", "CC Payments", "Loan Payments",
+                       "Account Type", "Member Account Number(may be present)", "Current Balance",
+                       "Withdrawls / Debits",
+                       "As of Date", "Average Balance", "Negative Days", "Competitor Name",
+                       "Direct Deposit employer name",
+                       "Direct Deposit employee name", "Payroll Deposit", "employer name", "Credit Card Provider Name",
+                       "ACH Debits(Yes or No)", "At least 10 transactions"]
 
             excelRow = 0
             for j, v1 in enumerate(headers):
                 sheet.write(excelRow, j, v1)
-            excelRow = excelRow+1
+            excelRow = excelRow + 1
             sheet.write(excelRow, 0, excelRow)
             sheet.write(excelRow, 1, "")
             sheet.write(excelRow, 2, pdfFile.split("/")[-1])
@@ -193,6 +210,21 @@ class BankExtraction:
             sheet.write(excelRow, 10, BankData["directDeposits"])
             sheet.write(excelRow, 11, BankData["CCPayments"])
             sheet.write(excelRow, 12, BankData["loanPayments"])
+            sheet.write(excelRow, 13, BankData["accountType"])
+            sheet.write(excelRow, 14, '')
+            sheet.write(excelRow, 15, BankData["endBalance"])
+            sheet.write(excelRow, 16, BankData["totalWithdraw"])
+            sheet.write(excelRow, 17, BankData["ToDate"])
+            sheet.write(excelRow, 18, BankData["averageDailyBalance"])
+            sheet.write(excelRow, 19, BankData["NegativeDaysCount"])
+            sheet.write(excelRow, 20, '')
+            sheet.write(excelRow, 21, BankData["EmployersName"])
+            sheet.write(excelRow, 22, BankData["EmployeeNames"])
+            sheet.write(excelRow, 23, BankData["payrollDeposits"])
+            sheet.write(excelRow, 24, BankData["EmployersName"])
+            sheet.write(excelRow, 25, BankData["CCProviders"])
+            sheet.write(excelRow, 26, '')
+            sheet.write(excelRow, 27, lenData > 10)
             # sheet.write(excelRow, 13, str(data["SummaryInfo"]))
             workbook.save(fileToWrite)
 
@@ -217,21 +249,23 @@ if __name__=="__main__":
     pdfData = (r"/Users/prasingh/Prashant/Prashant/CareerBuilder/ExtractionCode/src/classifier/data/")
     toCSV = []
     for file in os.listdir(pdffiles):
-        if ".DS_Store" not in file:
-            pdfDataPath = os.path.join(pdfData, file.replace(".pdf", ""))
+        # if file =="0064O00000kJTDcQAO-00P4O00001KE0cLUAT-__last_60_days_of_bank_stateme.pdf":
+            print(file)
+            if ".DS_Store" not in file:
+                pdfDataPath = os.path.join(pdfData, file.replace(".pdf", ""))
 
-            file = os.path.join(pdffiles, file)
+                file = os.path.join(pdffiles, file)
 
-            obj = BankExtraction()
+                obj = WFBankExtraction()
 
-            d = obj.extractBankStatement(file, pdfDataPath, [1, 2, 2, ], pdfDataPath.split("/")[-1])
-            print(d)
-            # print(d['SummaryInfo'])
-            # print(d['EmployersName'])
-            # print(d['EmployeeNames'])
-            # print(d['CCProviders'])
-            print('------------------------------------')
-            toCSV.append(d)
+                d = obj.extractBankStatement(file, pdfDataPath, [1, 2, 2, ], pdfDataPath.split("/")[-1])
+                print(d)
+                # print(d['SummaryInfo'])
+                # print(d['EmployersName'])
+                # print(d['EmployeeNames'])
+                # print(d['CCProviders'])
+                print('------------------------------------')
+                toCSV.append(d)
 
     import csv
 

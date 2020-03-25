@@ -41,6 +41,10 @@ class TableInfoExtraction3:
 
             self.average_daily_balance = [str(i[8]).strip() for i in keywordList if str(i[8]) != 'nan']
             self.average_daily_balance = list(set(self.average_daily_balance))
+
+            self.excludeKeywords = [str(i[12]).strip() for i in keywordList if str(i[8]) != 'nan']
+            self.excludeKeywords = list(set(self.excludeKeywords))
+
             # print(self.payroll_keywords)
         except Exception as e:
             raise Exception("Failed to extract values for payroll_keywords, cc_keywords, loan_keywords. Reason: "+str(e))
@@ -87,25 +91,29 @@ class TableInfoExtraction3:
             # print(d1[descriptionCol])
             try:
                 for k in self.payroll_keywords:
-                    if fuzz.partial_ratio( k.lower(), d1[descriptionCol].lower())>90:
-                        if len(k.split()) >=2:
-                            ratios = [fuzz.partial_ratio(kth.lower(), d1[descriptionCol].lower())>90 for kth in k.split()]
-                            if not re.search(r"\b" + k.lower() + r"\b", d1[descriptionCol].lower()):
-                                if False in ratios:
+                    for ex in self.excludeKeywords:
+                        if fuzz.partial_ratio(ex.lower(), d1[descriptionCol].lower()) > 90:
+                            break
+                    else:
+                        if fuzz.partial_ratio( k.lower(), d1[descriptionCol].lower())>90:
+                            if len(k.split()) >=2:
+                                ratios = [fuzz.partial_ratio(kth.lower(), d1[descriptionCol].lower())>90 for kth in k.split()]
+                                if not re.search(r"\b" + k.lower() + r"\b", d1[descriptionCol].lower()):
+                                    if False in ratios:
+                                        continue
+                            if fuzz.partial_ratio(k.lower(), d1[descriptionCol].lower()) == 100:
+                                if not re.search(r"\b" + k.lower() + r"\b", d1[descriptionCol].lower()):
                                     continue
-                        if fuzz.partial_ratio(k.lower(), d1[descriptionCol].lower()) == 100:
-                            if not re.search(r"\b" + k.lower() + r"\b", d1[descriptionCol].lower()):
-                                continue
-                        if data_index>0 and len(data.iloc[[data_index-1]]) ==len(data.iloc[[data_index]]) and d1[depositCol]=='' and d1[withdrawCol]=='':
-                            backD1 = d1
-                            d1 = last_data_interated
-                        payroll_amounts.append(self.__format_amount__(d1[depositCol]))
-                        try:
-                            summdata["payroll"][d1[descriptionCol]+" "+backD1[descriptionCol]+" "+str(data_index)] = [k,self.__format_amount__(d1[depositCol])]
-                        except:
-                            summdata["payroll"][d1[descriptionCol]+" "+str(data_index)] = [k,self.__format_amount__(d1[depositCol])]
+                            if data_index>0 and len(data.iloc[[data_index-1]]) ==len(data.iloc[[data_index]]) and d1[depositCol]=='' and d1[withdrawCol]=='':
+                                backD1 = d1
+                                d1 = last_data_interated
+                            payroll_amounts.append(self.__format_amount__(d1[depositCol]))
+                            try:
+                                summdata["payroll"][d1[descriptionCol]+" "+backD1[descriptionCol]+" "+str(data_index)] = [k,self.__format_amount__(d1[depositCol])]
+                            except:
+                                summdata["payroll"][d1[descriptionCol]+" "+str(data_index)] = [k,self.__format_amount__(d1[depositCol])]
 
-                        break
+                            break
             except IndexError as e:
                 pass
         data = pd.DataFrame.from_records(deductionData)
@@ -114,51 +122,57 @@ class TableInfoExtraction3:
             try:
                 for k in self.cc_keywords:
                     d1[descriptionCol] = d1[descriptionCol].replace("xxxxx", " ")
-
-                    if fuzz.partial_ratio(k.lower(), d1[descriptionCol].lower()) > 90:
-                        if len(k.split()) >=2:
-                            ratios = [fuzz.partial_ratio(kth.lower(), d1[descriptionCol].lower())>90 for kth in k.split()]
-                            if not re.search(r"\b" + k.lower() + r"\b", d1[descriptionCol].lower()):
-                                if False in ratios:
+                    for ex in self.excludeKeywords:
+                        if fuzz.partial_ratio(ex.lower(), d1[descriptionCol].lower()) > 90:
+                            break
+                    else:
+                        if fuzz.partial_ratio(k.lower(), d1[descriptionCol].lower()) > 90:
+                            if len(k.split()) >=2:
+                                ratios = [fuzz.partial_ratio(kth.lower(), d1[descriptionCol].lower())>90 for kth in k.split()]
+                                if not re.search(r"\b" + k.lower() + r"\b", d1[descriptionCol].lower()):
+                                    if False in ratios:
+                                        continue
+                            if fuzz.partial_ratio(k.lower(), d1[descriptionCol].lower()) == 100:
+                                if not re.search(r"\b" + k.lower() + r"\b", d1[descriptionCol].lower()):
                                     continue
-                        if fuzz.partial_ratio(k.lower(), d1[descriptionCol].lower()) == 100:
-                            if not re.search(r"\b" + k.lower() + r"\b", d1[descriptionCol].lower()):
-                                continue
-                        if data_index>0 and len(data.iloc[[data_index-1]]) ==len(data.iloc[[data_index]]) and d1[depositCol]=='' and d1[withdrawCol]=='':
-                            backD1 = d1
-                            d1 = last_data_interated
-                        cc_amounts.append(self.__format_amount__(d1[withdrawCol]))
-                        try:
-                            summdata["credit card"][d1[descriptionCol]+" "+backD1[descriptionCol]+" "+str(data_index)] = [k,self.__format_amount__(d1[withdrawCol])]
-                        except:
-                            summdata["credit card"][d1[descriptionCol]+" "+str(data_index)] = [k,self.__format_amount__(d1[withdrawCol])]
+                            if data_index>0 and len(data.iloc[[data_index-1]]) ==len(data.iloc[[data_index]]) and d1[depositCol]=='' and d1[withdrawCol]=='':
+                                backD1 = d1
+                                d1 = last_data_interated
+                            cc_amounts.append(self.__format_amount__(d1[withdrawCol]))
+                            try:
+                                summdata["credit card"][d1[descriptionCol]+" "+backD1[descriptionCol]+" "+str(data_index)] = [k,self.__format_amount__(d1[withdrawCol])]
+                            except:
+                                summdata["credit card"][d1[descriptionCol]+" "+str(data_index)] = [k,self.__format_amount__(d1[withdrawCol])]
 
-                        # print(d1)
-                        break
+                            # print(d1)
+                            break
 
                 for k in self.loan_keywords:
                     d1[descriptionCol] = d1[descriptionCol].replace("xxxxx", " ")
-
-                    if fuzz.partial_ratio(k.lower(), d1[descriptionCol].lower()) > 90:
-                        if len(k.split()) >=2:
-                            ratios = [fuzz.partial_ratio(kth.lower(), d1[descriptionCol].lower())>90 for kth in k.split()]
-                            if not re.search(r"\b" + k.lower() + r"\b", d1[descriptionCol].lower()):
-                                if False in ratios:
+                    for ex in self.excludeKeywords:
+                        if fuzz.partial_ratio(ex.lower(), d1[descriptionCol].lower()) > 90:
+                            break
+                    else:
+                        if fuzz.partial_ratio(k.lower(), d1[descriptionCol].lower()) > 90:
+                            if len(k.split()) >=2:
+                                ratios = [fuzz.partial_ratio(kth.lower(), d1[descriptionCol].lower())>90 for kth in k.split()]
+                                if not re.search(r"\b" + k.lower() + r"\b", d1[descriptionCol].lower()):
+                                    if False in ratios:
+                                        continue
+                            if fuzz.partial_ratio(k.lower(), d1[descriptionCol].lower()) == 100:
+                                if not re.search(r"\b" + k.lower() + r"\b", d1[descriptionCol].lower()):
                                     continue
-                        if fuzz.partial_ratio(k.lower(), d1[descriptionCol].lower()) == 100:
-                            if not re.search(r"\b" + k.lower() + r"\b", d1[descriptionCol].lower()):
-                                continue
-                        if data_index>0 and len(data.iloc[[data_index-1]]) ==len(data.iloc[[data_index]]) and d1[depositCol]=='' and d1[withdrawCol]=='':
-                            backD1 = d1
+                            if data_index>0 and len(data.iloc[[data_index-1]]) ==len(data.iloc[[data_index]]) and d1[depositCol]=='' and d1[withdrawCol]=='':
+                                backD1 = d1
 
-                            d1 = last_data_interated
-                        loan_amounts.append(self.__format_amount__(d1[withdrawCol]))
-                        try:
-                            summdata["loan"][d1[descriptionCol]+" "+backD1[descriptionCol]+" "+str(data_index)] = [k,self.__format_amount__(d1[withdrawCol])]
-                        except:
-                            summdata["loan"][d1[descriptionCol]+" "+str(data_index)] = [k,self.__format_amount__(d1[withdrawCol])]
+                                d1 = last_data_interated
+                            loan_amounts.append(self.__format_amount__(d1[withdrawCol]))
+                            try:
+                                summdata["loan"][d1[descriptionCol]+" "+backD1[descriptionCol]+" "+str(data_index)] = [k,self.__format_amount__(d1[withdrawCol])]
+                            except:
+                                summdata["loan"][d1[descriptionCol]+" "+str(data_index)] = [k,self.__format_amount__(d1[withdrawCol])]
 
-                        break
+                            break
 
 
             except IndexError as e:
@@ -176,8 +190,9 @@ class TableInfoExtraction3:
     def getTableInfo(self, filepath, totalCol, dateCol, desCol, depositCol, withdrawCol, totalAmountsCol, isKeywordsPage, headers, additionKeywords, deductionKeywords,edge_tol=85):
         additionData, deductionData = get_tablular_data(filepath,totalCol, dateCol, desCol, depositCol, withdrawCol, totalAmountsCol, isKeywordsPage, headers, additionKeywords, deductionKeywords,edge_tol)
         # data = pd.DataFrame.from_records(data)
+        lenData  = len(additionData)+len(deductionData)
         payroll_amounts, cc_amounts, loan_amounts, summdata = self.__getTableInfo__(additionData, deductionData, 1, 2, 2)
-        return payroll_amounts,cc_amounts,loan_amounts,summdata
+        return payroll_amounts,cc_amounts,loan_amounts,lenData,additionData, deductionData, summdata
 
 
 
@@ -213,7 +228,7 @@ if __name__=="__main__":
     headers = [["Date", "description", "Amount", "Balance"],]
     filepath  = r'/Users/prasingh/Prashant/Prashant/CareerBuilder/Extraction/data/BS_NT/BS_JPMC_Test/0064O00000k90IxQAI-00P4O00001KSxdvUAD-Bank Statement.pdf'
     import pandas as pd
-    payroll_amounts,cc_amounts,loan_amounts,summdata = tableInfoObj.getTableInfo(filepath, None, dateCol=0, desCol=1, depositCol=-2, withdrawCol=2,
+    payroll_amounts,cc_amounts,loan_amounts,lenData, additionData, deductionData,summdata = tableInfoObj.getTableInfo(filepath, None, dateCol=0, desCol=1, depositCol=-2, withdrawCol=2,
                              totalAmountsCol=2, isKeywordsPage=True, headers=headers, additionKeywords=additionKeywords,
                              deductionKeywords=deductionKeywords,edge_tol=500 )
     print("payroll: ",payroll_amounts)
