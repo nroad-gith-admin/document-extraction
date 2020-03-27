@@ -141,7 +141,7 @@ class PNCBankExtraction:
             BankData["directDeposits"] = (deposits)
             BankData["SummaryInfo"] = (summdata)
             BankData["NegativeDaysCount"] = (negativeDayeCount)
-            BankData["At least 10 transactions"] =lenData>10
+            BankData["atLeastTenTransactions"] =lenData>10
             # BankData["uniqueId"] = self.extractUniqueID(pdfFile)
 
 

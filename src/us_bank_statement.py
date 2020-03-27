@@ -132,7 +132,7 @@ class USBankExtraction:
             BankData["loanPayments"] = (loan_amounts)
             BankData["directDeposits"] = (deposits)
             BankData["SummaryInfo"] = (summdata)
-            BankData["At least 10 transactions"] =lenData>10
+            BankData["atLeastTenTransactions"] =lenData>10
             BankData["NegativeDaysCount"] = (negativeDayeCount)
 
 
