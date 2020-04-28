@@ -18,6 +18,8 @@ from tabular_info_extraction.utils import *
 import numpy as np
 from negative_days.negative_days import negative_days_count
 
+from ach_debits.ach_debits import ACHDebits
+
 
 class JPMCBankExtraction:
 
@@ -28,7 +30,7 @@ class JPMCBankExtraction:
         self.tableInfoObj2 = TableInfoExtraction2()
         self.jpmcSummaryExtraction = JPMCExtractSum()
         self.tableCamelotObj = TableExtractorCamelot()
-
+        self.achDebitObj = ACHDebits()
 
     def isBankStatement(self,data):
         if not isinstance(data, str):
@@ -169,8 +171,9 @@ class JPMCBankExtraction:
 
             deposits, averageBalance, begBalance, endBalance, withdrawAmounts, endDate, accounttype = self.tableInfoObjJPMC.getTableInfo(
                 pdfFile, descriptionCol, depositCol, withdrawCol)
-
             negativeDayeCount = negative_days_count(additionData, deductionData, begBalance)
+
+            isAchDebit = self.achDebitObj.is_ach(additionData, deductionData, 1)
 
             new_s = {}
             for k, v in data.items():
@@ -210,6 +213,10 @@ class JPMCBankExtraction:
             if deposits ==0:
                 deposits = -9999.99
 
+            if lenData>10:
+                atleast10trans = 'YES'
+            else:
+                atleast10trans = 'NO'
 
 
             BankData["begBalance"] = begBalance
@@ -229,8 +236,9 @@ class JPMCBankExtraction:
             BankData["loanPayments"] = (loan_amounts)
             BankData["directDeposits"] = (deposits)
             BankData["SummaryInfo"] = (summdata)
-            BankData["atLeastTenTransactions"] =lenData>10
+            BankData["atLeastTenTransactions"] =atleast10trans
             BankData["NegativeDaysCount"] = (negativeDayeCount)
+            BankData["isACHDebit"] = isAchDebit
 
             # BankData["uniqueId"] = self.extractUniqueID(pdfFile)
 
@@ -280,7 +288,7 @@ class JPMCBankExtraction:
             sheet.write(excelRow, 7, BankData["averageDailyBalance"])
             sheet.write(excelRow, 8, BankData["loanDeposits"])
             sheet.write(excelRow, 9, BankData["payrollDeposits"])
-            sheet.write(excelRow, 10, BankData["directDeposits"])
+            sheet.write(excelRow, 10, BankData["DirectDepositsAmounts"])
             sheet.write(excelRow, 11, BankData["CCPayments"])
             sheet.write(excelRow, 12, BankData["loanPayments"])
             sheet.write(excelRow, 13, BankData["accountType"])
@@ -293,11 +301,10 @@ class JPMCBankExtraction:
             sheet.write(excelRow, 20, '')
             sheet.write(excelRow, 21, BankData["EmployersName"])
             sheet.write(excelRow, 22, BankData["EmployeeNames"])
-            sheet.write(excelRow, 23, BankData["payrollDeposits"])
-            sheet.write(excelRow, 24, BankData["EmployersName"])
-            sheet.write(excelRow, 25, BankData["CCProviders"])
-            sheet.write(excelRow, 26, '')
-            sheet.write(excelRow, 27, lenData > 10)
+            sheet.write(excelRow, 23, BankData["EmployersName"])
+            sheet.write(excelRow, 24, BankData["CCProviders"])
+            sheet.write(excelRow, 25, BankData['isACHDebit'])
+            sheet.write(excelRow, 26, BankData["atLeastTenTransactions"] )
             # sheet.write(excelRow, 13, str(data["SummaryInfo"]))
             workbook.save(fileToWrite)
 

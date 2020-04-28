@@ -83,6 +83,8 @@ class TableJPMCInfoExtraction:
             return True
         return False
     def __init__(self):
+        self.yearFormat = {"jan": 1, "feb": 2, "mar": 3, "apr": 4, "may": 5, "june": 6, "july": 7, "aug": 8, "sep": 9,
+                           "oct": 10, "nov": 11, "dec": 12}
 
         keywordListFol = os.path.join(os.path.dirname(os.path.realpath(__file__)),  "..","..","data", "Keywords_BS.XLSX")
         if os.path.isfile(keywordListFol) == False:
@@ -113,7 +115,7 @@ class TableJPMCInfoExtraction:
             self.withdrawlKey = [i.lower().strip() for i in self.withdrawlKey]
             self.endDateKeys = endDate
             self.accountTypeKey = accountTypeKey
-            # print(self.payroll_keywords)
+            # print(self.average_daily_balance)
         except Exception as e:
             raise Exception("Failed to extract values for payroll_keywords, cc_keywords, loan_keywords. Reason: "+str(e))
     def checkMoney(self, val):
@@ -134,6 +136,7 @@ class TableJPMCInfoExtraction:
             amount = amount.replace(",","")
 
             amount = amount.replace("$", "")
+            amount = amount.replace(")", "")
             return float(amount.strip())
         except:
             return 0
@@ -143,6 +146,7 @@ class TableJPMCInfoExtraction:
         val = val.replace("$", '')
         val = val.replace("-", '')
         val = val.replace(",", '')
+        val = val.replace(")", '')
 
         if "." in val:
             splitVal = val.split(".")
@@ -161,19 +165,42 @@ class TableJPMCInfoExtraction:
 
         return val
 
-    def extract_amount_key(self,dataRow, keywords ):
+    def extract_amount_key(self,dataRow, keywords,type="starts" ):
+
         dataRow = dataRow.lower()
         for keys in keywords:
             keyword = keys.lower()
             # if re.search(r"\b" + keyword.lower() + r"\b", dataRow.lower()):
-            if dataRow.lower().startswith(keyword.lower()):
-                before_keyword, keyword, after_keyword = dataRow.partition(keyword)
-                after_keyword = after_keyword.split()
-                amounts = [self.__format_amount__(i) for i in after_keyword if self.isAmount(i) == True]
-                if len(amounts)>0:
-                    return amounts[0], keyword
+            if type=="starts":
+                if dataRow.lower().startswith(keyword.lower()):
+                    before_keyword, keyword, after_keyword = dataRow.partition(keyword)
+                    after_keyword = after_keyword.split()
+                    amounts = [self.__format_amount__(i) for i in after_keyword if self.isAmount(i) == True]
+                    if len(amounts)>0:
+                        return amounts[0], keyword
+            elif type=="in":
+                if keyword.lower() in dataRow.lower():
+                    before_keyword, keyword, after_keyword = dataRow.partition(keyword)
+                    after_keyword = after_keyword.split()
+                    amounts = [self.__format_amount__(i) for i in after_keyword if self.isAmount(i) == True]
+                    if len(amounts)>0:
+                        return amounts[0], keyword
 
         return None,None
+    def __format__date(self, date):
+        year = date.split(",")[-1]
+        year = year.strip()
+        monthDay = date.split(",")[0]
+        monthDay = monthDay.strip()
+        month = monthDay.split()[0]
+        day = monthDay.split()[-1]
+        for k, v in self.yearFormat.items():
+            if k in month.lower():
+                month = v
+                break
+
+        return str(str(month)+"/"+str(day)+"/"+str(year))
+
     def getTableInfo(self, filepath, descriptionCol, depositCol, withdrawCol,edge_tol=85):
         depositAmount = 0
         averageBalance = 0
@@ -207,6 +234,10 @@ class TableJPMCInfoExtraction:
                 extactedVal,foundKey = self.extract_amount_key(dataRow, self.endBalanceKey)
                 if extactedVal != None:
                     endBalance = extactedVal
+            if averageBalance == 0:
+                extactedVal,foundKey = self.extract_amount_key(dataRow, self.average_daily_balance, type="in")
+                if extactedVal != None:
+                    averageBalance = extactedVal
             # if endBalance == 0:
             extactedVal,foundKey = self.extract_amount_key(dataRow, self.withdrawlKey)
             if extactedVal!= None and lastExtractedVal ==None:
@@ -224,14 +255,14 @@ class TableJPMCInfoExtraction:
                 for keys in self.endDateKeys:
                     if keys in dataRow:
                         enddateSplitted = dataRow.split(keys)
-                        endDate = enddateSplitted[-1]
+                        endDate = self.__format__date(enddateSplitted[-1])
 
             if accountType=='':
                 for keys in self.accountTypeKey:
-                    if keys in dataRow:
-                        splittedWords = dataRow.split(keys)
-                        splittedWords = [i for i in splittedWords if i.strip() != '']
-                        accountType = splittedWords[0]
+                    if keys.lower() in dataRow.lower():
+                        # splittedWords = dataRow.split(keys)
+                        # splittedWords = [i for i in splittedWords if i.strip() != '']
+                        accountType = keys
 
         withdrawlBalances = sum(withdrawlBalances)
         return depositAmount, averageBalance, begBalance, endBalance, withdrawlBalances, endDate, accountType

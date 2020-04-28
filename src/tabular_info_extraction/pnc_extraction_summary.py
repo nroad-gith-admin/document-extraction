@@ -100,6 +100,7 @@ class PNCExtractSum:
                         desplited = des.split("Payroll".lower())[-1].strip()
                         directDepositAmounts.append(self.__format_amount__(str(desVal[1])))
                         employerName.append(desplited)
+                        break
 
                         # if len(desplited) >0:
                         #     employerName.append(desplited[0].strip())
@@ -133,7 +134,6 @@ class PNCExtractSum:
                         desSplitted = newdes.split(wordsMatched)
                         if len(desSplitted)>0:
                             creditCardProvider.append(desSplitted[0].strip())
-                            break
 
         directDepositAmounts = sum(directDepositAmounts)
         return ", ".join(list(set(employerName))), ", ".join(list(set(employeeName))), ", ".join(list(set(creditCardProvider))),directDepositAmounts

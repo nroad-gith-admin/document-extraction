@@ -11,6 +11,7 @@ from staticCode.us_static import ExtractUS
 from tabular_data_extraction.format1.extract_table_info2 import TableInfoExtraction2
 from qa_checks.checks import check_all
 from negative_days.negative_days import negative_days_count
+from ach_debits.ach_debits import ACHDebits
 
 
 class USBankExtraction:
@@ -21,6 +22,7 @@ class USBankExtraction:
         self.tableInfoObjUS = TableUSInfoExtraction()
         self.tableInfoObj2 = TableInfoExtraction2()
         self.usSummaryExtraction = USExtractSum()
+        self.achDebitObj = ACHDebits()
 
 
 
@@ -74,7 +76,11 @@ class USBankExtraction:
                 pdfFile, descriptionCol, depositCol, withdrawCol)
 
             negativeDayeCount = negative_days_count(additionData, deductionData, begBalance)
-
+            isAchDebit = self.achDebitObj.is_ach(additionData, deductionData, 1)
+            if lenData>10:
+                atleast10trans = 'YES'
+            else:
+                atleast10trans = 'NO'
 
             new_s = {}
             for k, v in data.items():
@@ -132,8 +138,9 @@ class USBankExtraction:
             BankData["loanPayments"] = (loan_amounts)
             BankData["directDeposits"] = (deposits)
             BankData["SummaryInfo"] = (summdata)
-            BankData["atLeastTenTransactions"] =lenData>10
+            BankData["atLeastTenTransactions"] =atleast10trans
             BankData["NegativeDaysCount"] = (negativeDayeCount)
+            BankData["isACHDebit"] = isAchDebit
 
 
 
@@ -165,7 +172,7 @@ class USBankExtraction:
                        "Withdrawls / Debits",
                        "As of Date", "Average Balance", "Negative Days", "Competitor Name",
                        "Direct Deposit employer name",
-                       "Direct Deposit employee name", "Payroll Deposit", "employer name", "Credit Card Provider Name",
+                       "Direct Deposit employee name", "Payroll Deposit employer name", "Credit Card Provider Name",
                        "ACH Debits(Yes or No)", "At least 10 transactions"]
 
             excelRow = 0
@@ -182,7 +189,7 @@ class USBankExtraction:
             sheet.write(excelRow, 7, BankData["averageDailyBalance"])
             sheet.write(excelRow, 8, BankData["loanDeposits"])
             sheet.write(excelRow, 9, BankData["payrollDeposits"])
-            sheet.write(excelRow, 10, BankData["directDeposits"])
+            sheet.write(excelRow, 10, BankData["DirectDepositsAmounts"])
             sheet.write(excelRow, 11, BankData["CCPayments"])
             sheet.write(excelRow, 12, BankData["loanPayments"])
             sheet.write(excelRow, 13, BankData["accountType"])
@@ -195,11 +202,11 @@ class USBankExtraction:
             sheet.write(excelRow, 20, '')
             sheet.write(excelRow, 21, BankData["EmployersName"])
             sheet.write(excelRow, 22, BankData["EmployeeNames"])
-            sheet.write(excelRow, 23, BankData["payrollDeposits"])
-            sheet.write(excelRow, 24, BankData["EmployersName"])
-            sheet.write(excelRow, 25, BankData["CCProviders"])
-            sheet.write(excelRow, 26, '')
-            sheet.write(excelRow, 27, lenData > 10)
+            sheet.write(excelRow, 23, BankData["EmployersName"])
+            sheet.write(excelRow, 24, BankData["CCProviders"])
+            sheet.write(excelRow, 25, BankData['isACHDebit'])
+
+            sheet.write(excelRow, 26, lenData > 10)
             # sheet.write(excelRow, 13, str(data["SummaryInfo"]))
             workbook.save(fileToWrite)
 

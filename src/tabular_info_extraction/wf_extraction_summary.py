@@ -139,7 +139,7 @@ class WFExtractSum:
                         desSplitted = newdes.split(wordsMatched)
                         if len(desSplitted)>0:
                             creditCardProvider.append(desSplitted[0].strip())
-                            break
+
             # except:
             #     pass
 

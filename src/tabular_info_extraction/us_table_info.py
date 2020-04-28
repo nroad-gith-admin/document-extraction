@@ -82,7 +82,22 @@ class TableUSInfoExtraction:
                 return False
             return True
         return False
+    def __format__date(self, date):
+        year = date.split(",")[-1]
+        year = year.strip()
+        monthDay = date.split(",")[0]
+        monthDay = monthDay.strip()
+        month = monthDay.split()[0]
+        day = monthDay.split()[-1]
+        for k, v in self.yearFormat.items():
+            if k in month.lower():
+                month = v
+                break
+
+        return str(str(month)+"/"+str(day)+"/"+str(year))
     def __init__(self):
+        self.yearFormat = {"jan": 1, "feb": 2, "mar": 3, "apr": 4, "may": 5, "june": 6, "july": 7, "aug": 8, "sep": 9,
+                           "oct": 10, "nov": 11, "dec": 12}
 
         keywordListFol = os.path.join(os.path.dirname(os.path.realpath(__file__)),  "..","..","data", "Keywords_BS.XLSX")
         if os.path.isfile(keywordListFol) == False:
@@ -237,7 +252,7 @@ class TableUSInfoExtraction:
                         enddateSplitted = dataRow.split(keys)
                         endDate = enddateSplitted[-1]
                         endDate = endDate.split("$")
-                        endDate = endDate[0]
+                        endDate = self.__format__date(endDate[0])
 
 
             if accountType=='':

@@ -11,7 +11,7 @@ from staticCode.boa_static import ExtractBOA
 from tabular_data_extraction.format1.extract_table_info2 import TableInfoExtraction2
 from qa_checks.checks import check_all
 from negative_days.negative_days import negative_days_count
-
+from ach_debits.ach_debits import ACHDebits
 class BOABankExtraction:
 
     def __init__(self):
@@ -20,7 +20,7 @@ class BOABankExtraction:
         self.tableInfoObjBOA = TableBOAInfoExtraction()
         self.tableInfoObj2 = TableInfoExtraction2()
         self.boaSummaryExtraction = BOAExtractSum()
-
+        self.achDebitObj = ACHDebits()
 
 
     def isBankStatement(self,data):
@@ -64,14 +64,13 @@ class BOABankExtraction:
 
             payroll_amounts, cc_amounts, loan_amounts, lenData, additionData, deductionData, summdata = self.tableInfoObj2.getTableInfo(
                 pdfFile, 1, 2, 2)
-            print(summdata)
 
             employerNames, employeeName, ccProviders, directDepositAmounts = self.boaSummaryExtraction.extract_summ_info(summdata)
             deposits, averageBalance, begBalance, endBalance, withdrawAmounts, endDate, accounttype = self.tableInfoObjBOA.getTableInfo(
                 pdfFile, descriptionCol, depositCol, withdrawCol)
             negativeDayeCount = negative_days_count(additionData, deductionData, begBalance)
 
-
+            isAchDebit = self.achDebitObj.is_ach(additionData, deductionData, 1)
             new_s = {}
             for k, v in data.items():
                 max_val = max(v.values())
@@ -110,6 +109,10 @@ class BOABankExtraction:
             if deposits ==0:
                 deposits = -9999.99
 
+            if lenData>10:
+                atleast10trans = 'YES'
+            else:
+                atleast10trans = 'NO'
 
             BankData["begBalance"] = begBalance
             BankData["endBalance"] = endBalance
@@ -128,7 +131,8 @@ class BOABankExtraction:
             BankData["directDeposits"] = (deposits)
             BankData["SummaryInfo"] = (summdata)
             BankData["NegativeDaysCount"] = (negativeDayeCount)
-            BankData["atLeastTenTransactions"] =lenData>10
+            BankData["atLeastTenTransactions"] =atleast10trans
+            BankData["isACHDebit"] = isAchDebit
             # BankData["uniqueId"] = self.extractUniqueID(pdfFile)
 
 
@@ -194,7 +198,7 @@ class BOABankExtraction:
             sheet.write(excelRow, 22,  BankData["EmployeeNames"])
             sheet.write(excelRow, 23,  BankData["EmployersName"])
             sheet.write(excelRow, 24,  BankData["CCProviders"])
-            sheet.write(excelRow, 25,  '')
+            sheet.write(excelRow, 25,  BankData['isACHDebit'])
             sheet.write(excelRow, 26,  lenData>10)
 
             # sheet.write(excelRow, 13, str(data["SummaryInfo"]))

@@ -4,10 +4,8 @@ curpath = os.path.join(os.path.dirname(os.path.realpath(__file__)))
 sys.path.insert(0, curpath)
 
 
-import xlrd
 import pandas as pd
 from utils import *
-import numpy as np
 import re
 import os
 from fuzzywuzzy import fuzz
@@ -42,7 +40,7 @@ class TableInfoExtraction2:
             self.average_daily_balance = [str(i[8]).strip() for i in keywordList if str(i[8]) != 'nan']
             self.average_daily_balance = list(set(self.average_daily_balance))
 
-            self.excludeKeywords = [str(i[12]).strip() for i in keywordList if str(i[8]) != 'nan']
+            self.excludeKeywords = [str(i[12]).strip() for i in keywordList if str(i[12]) != 'nan']
             self.excludeKeywords = list(set(self.excludeKeywords))
             # print(self.payroll_keywords)
         except Exception as e:

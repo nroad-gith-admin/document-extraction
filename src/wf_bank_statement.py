@@ -19,24 +19,21 @@ from tabular_data_extraction.format2.extract_table_info3 import TableInfoExtract
 from qa_checks.checks import check_all
 from negative_days.negative_days import negative_days_count
 
+from ach_debits.ach_debits import ACHDebits
 
 # dataExtObj = DataExtractor()
-extractDataImgObj = ExtractDataImage()
-dataExtObj = ExtractWellsFargo()
-dataExtObjBoa = ExtractBOA()
-dataExtObjJpmc = ExtractJPMC()
-dataExtObjPNC = ExtractPNC()
-dataExtObjUS = ExtractUS()
-tableInfoExtImg = TableInfoExtractionImage()
-tableInfoObjWf = TableWFInfoExtraction()
-tableInfoObj2 = TableInfoExtraction2()
-tableInfoObj3 = TableInfoExtraction3()
-wfSummaryExtraction = WFExtractSum()
+
 
 
 class WFBankExtraction:
 
-
+    def __init__(self):
+        self.extractDataImgObj = ExtractDataImage()
+        self.dataExtObj = ExtractWellsFargo()
+        self.tableInfoObjWf = TableWFInfoExtraction()
+        self.tableInfoObj3 = TableInfoExtraction3()
+        self.wfSummaryExtraction = WFExtractSum()
+        self.achDebitObj = ACHDebits()
     def isBankStatement(self,data):
         if not isinstance(data, str):
             raise Exception("Expecting data should in str. Got: " + type(data))
@@ -75,11 +72,11 @@ class WFBankExtraction:
                         with open(os.path.join(pdfFileData, jsonfile)) as f:
                             statementData.extend(json.load(f))
         else:
-            statementData = extractDataImgObj.get_data(pdfFile, [0, 1])
+            statementData = self.extractDataImgObj.get_data(pdfFile, [0, 1])
 
-        data = dataExtObj.get_classified(statementData)
+        data = self.dataExtObj.get_classified(statementData)
 
-        deposits, averageBalance, begBalance, endBalance, withdrawAmounts, endDate, accounttype = tableInfoObjWf.getTableInfo(
+        deposits, averageBalance, begBalance, endBalance, withdrawAmounts, endDate, accounttype = self.tableInfoObjWf.getTableInfo(
             pdfFile, descriptionCol, depositCol, withdrawCol)
 
         additionKeywords, deductionKeywords = ["Transaction history", "Transaction history (continued)"], []
@@ -89,7 +86,7 @@ class WFBankExtraction:
         allheaders.append(headers1)
         allheaders.append(headers2)
 
-        payroll_amounts, cc_amounts, loan_amounts, lenData, additionData, deductionData, summdata = tableInfoObj3.getTableInfo(pdfFile, None,
+        payroll_amounts, cc_amounts, loan_amounts, lenData, additionData, deductionData, summdata = self.tableInfoObj3.getTableInfo(pdfFile, None,
                                                                                         dateCol=0, desCol=2,
                                                                                         depositCol=-3,
                                                                                         withdrawCol=-2,
@@ -99,11 +96,15 @@ class WFBankExtraction:
                                                                                         additionKeywords=additionKeywords,
                                                                                         deductionKeywords=deductionKeywords)
 
-        employerNames, employeeName, ccProviders, directDepositAmounts = wfSummaryExtraction.extract_summ_info(
+        employerNames, employeeName, ccProviders, directDepositAmounts = self.wfSummaryExtraction.extract_summ_info(
             summdata)
 
         negativeDayeCount = negative_days_count(additionData, deductionData, begBalance)
-
+        isAchDebit = self.achDebitObj.is_ach(additionData, deductionData, 1)
+        if lenData > 10:
+            atleast10trans = 'YES'
+        else:
+            atleast10trans = 'NO'
         new_s = {}
         for k, v in data.items():
             max_val = max(v.values())
@@ -156,8 +157,9 @@ class WFBankExtraction:
             BankData["loanPayments"] = (loan_amounts)
             BankData["directDeposits"] = (deposits)
             BankData["SummaryInfo"] = (summdata)
-            BankData["atLeastTenTransactions"] =lenData>10
+            BankData["atLeastTenTransactions"] =atleast10trans
             BankData["NegativeDaysCount"] = (negativeDayeCount)
+            BankData["isACHDebit"] = isAchDebit
 
             # BankData["uniqueId"] = self.extractUniqueID(pdfFile)
 
@@ -190,7 +192,7 @@ class WFBankExtraction:
                        "Withdrawls / Debits",
                        "As of Date", "Average Balance", "Negative Days", "Competitor Name",
                        "Direct Deposit employer name",
-                       "Direct Deposit employee name", "Payroll Deposit", "employer name", "Credit Card Provider Name",
+                       "Direct Deposit employee name", "Payroll Deposit employer name", "Credit Card Provider Name",
                        "ACH Debits(Yes or No)", "At least 10 transactions"]
 
             excelRow = 0
@@ -207,7 +209,7 @@ class WFBankExtraction:
             sheet.write(excelRow, 7, BankData["averageDailyBalance"])
             sheet.write(excelRow, 8, BankData["loanDeposits"])
             sheet.write(excelRow, 9, BankData["payrollDeposits"])
-            sheet.write(excelRow, 10, BankData["directDeposits"])
+            sheet.write(excelRow, 10, BankData["DirectDepositsAmounts"])
             sheet.write(excelRow, 11, BankData["CCPayments"])
             sheet.write(excelRow, 12, BankData["loanPayments"])
             sheet.write(excelRow, 13, BankData["accountType"])
@@ -220,13 +222,11 @@ class WFBankExtraction:
             sheet.write(excelRow, 20, '')
             sheet.write(excelRow, 21, BankData["EmployersName"])
             sheet.write(excelRow, 22, BankData["EmployeeNames"])
-            sheet.write(excelRow, 23, BankData["payrollDeposits"])
-            sheet.write(excelRow, 24, BankData["EmployersName"])
-            sheet.write(excelRow, 25, BankData["CCProviders"])
-            sheet.write(excelRow, 26, '')
-            sheet.write(excelRow, 27, lenData > 10)
-            # sheet.write(excelRow, 13, str(data["SummaryInfo"]))
-            workbook.save(fileToWrite)
+            sheet.write(excelRow, 23, BankData["EmployersName"])
+            sheet.write(excelRow, 24, BankData["CCProviders"])
+            sheet.write(excelRow, 25, BankData['isACHDebit'])
+
+            sheet.write(excelRow, 26, lenData > 10)
 
             # fileWriten = os.path.join(os.getcwd(), fileToWrite)
             BankData["filepath"] = fileWriten

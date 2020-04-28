@@ -126,7 +126,7 @@ class JPMCExtractSum:
                         desSplitted = newdes.split(wordsMatched)
                         if len(desSplitted)>0:
                             creditCardProvider.append(desSplitted[0].strip())
-                            break
+                            # break
 
         directDepositAmounts = sum(directDepositAmounts)
         return ", ".join(list(set(employerName))), ", ".join(list(set(employeeName))), ", ".join(list(set(creditCardProvider))),directDepositAmounts
@@ -141,25 +141,24 @@ class JPMCExtractSum:
 if __name__ == "__main__":
     data = {
     'payroll': {
-      'Perfect Wireless Direct Dep                 PPD ID: 9111111101 0': [
-        'Direct Dep',
-        1858.62
-      ],
-      'Perfect Wireless Direct Dep                 PPD ID: 9111111101 1': [
-        'Direct Dep',
-        1357.97
-      ],
-      'Perfect Wireless Direct Dep                 PPD ID: 9111111101 2': [
-        'Direct Dep',
-        939.12
-      ],
-      'Perfect Wireless Direct Dep                 PPD ID: 9111111101 3': [
-        'Direct Dep',
-        929.01
+      '46837 Clearwater Dir Dep                    PPD ID: 1364227403 5': [
+        'Dir Dep',
+        4153.9
       ]
     },
     'credit card': {
-
+      'Synchrony Bank   Cc Pymt    601918302263256 Web ID: 9856794001 29': [
+        'CC PYMT',
+        -70.0
+      ],
+      'Synchrony Bank   Cc Pymt    601918302263256 Web ID: 9856794001 115': [
+        'CC PYMT',
+        -60.0
+      ],
+      'Capital One      Crcardpmt  922930180080617 Tel ID: 9541719018 179': [
+        'Crcardpmt',
+        -25.0
+      ]
     },
     'loan': {
 

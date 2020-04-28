@@ -42,7 +42,7 @@ class TableInfoExtraction3:
             self.average_daily_balance = [str(i[8]).strip() for i in keywordList if str(i[8]) != 'nan']
             self.average_daily_balance = list(set(self.average_daily_balance))
 
-            self.excludeKeywords = [str(i[12]).strip() for i in keywordList if str(i[8]) != 'nan']
+            self.excludeKeywords = [str(i[12]).strip() for i in keywordList if str(i[12]) != 'nan']
             self.excludeKeywords = list(set(self.excludeKeywords))
 
             # print(self.payroll_keywords)

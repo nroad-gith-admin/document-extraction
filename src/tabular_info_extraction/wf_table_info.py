@@ -11,7 +11,9 @@ from utils import *
 import numpy as np
 import re
 import os
+import operator
 from fuzzywuzzy import fuzz
+from extract_electronics import ExtractElectronics
 
 import configparser,os
 
@@ -37,7 +39,8 @@ try:
 
     accountTypeKey = (config_obj.get("WellsFargo", "accountTypeKey"))
     accountTypeKey = accountTypeKey.split(",")
-    accountTypeKey = [i.replace(":",",") for i in accountTypeKey]
+    # accountTypeKey = [i.replace(":",",") for i in accountTypeKey]
+    accountTypeKey.sort(key=lambda x:len(x),reverse=True)
 
 except Exception as e:
     raise Exception("Config file error: " + str(e))
@@ -154,6 +157,11 @@ class TableWFInfoExtraction:
         val = val.replace(",", '')
 
         return val
+    def __year__statement__(self, data):
+        countyear = {}
+        for year in range(2016, 2030):
+            countyear[year] =  sum(1 for _ in re.finditer(r'\b%s\b' % re.escape(str(year)), data))
+        return  max(countyear.items(), key=operator.itemgetter(1))[0]
 
     def getTableInfo(self, filepath, descriptionCol, depositCol, withdrawCol,edge_tol=85):
         depositAmount = 0
@@ -163,11 +171,37 @@ class TableWFInfoExtraction:
         endDate = ""
         withdrawlBalances = 0
         accountType = ""
+
+        self.extractElecObj = ExtractElectronics(filepath)
+        numPage = self.extractElecObj.num_page()
+        data = []
+        for i in list(range(numPage)):
+            data.extend(self.extractElecObj.read_page(pageNums=[i, ], typeOut='blocks')[0])
+
+        data = [str(i[-3]) for i in data if str(i[-3]).strip() != '']
+        newData = []
+        for d in data:
+            newData.extend(d.split("\n"))
+        dataElectronics = " ".join(newData)
+
+
+        yearStatement = self.__year__statement__(dataElectronics)
+
+        if accountType == "":
+            # w = " ".join(d1)
+            for accountTypeKey in self.accountTypeKey:
+                # print(accountTypeKey)
+                if accountTypeKey.lower() in dataElectronics.lower():
+                    accountType = accountTypeKey
+                    break
+
+        # print(yearStatement)
         try:
             pdf = PdfFileReader(open(filepath, 'rb'))
         except Exception as e:
             raise Exception("Failed to read the file: "+str(filepath)+" Reason: "+str(e))
         num_pages = pdf.getNumPages()
+
         try:
             for page in range(1, num_pages + 1):
                 try:
@@ -268,15 +302,8 @@ class TableWFInfoExtraction:
                                         words = [i for i in words if self.isAmount(i)==True]
                                         endBalance = self.__format_amount__(words[0])
                                         endDate = " ".join(d1).lower().replace(k.lower(),"").replace(words[0],"").strip()
-                            if accountType == "":
-                                w = " ".join(d1)
-                                for accountTypeKeys in self.accountTypeKey:
-                                    accountTypeKeys = accountTypeKeys.split(",")
-                                    flags = [accountKey in w for accountKey in accountTypeKeys]
-                                    if False not in flags:
-                                        accountType = re.search(accountTypeKeys[0] + "(.*)" + accountTypeKeys[1], w)
-                                        accountType = accountType.group(1).strip()
-                                        break
+                                        endDate = endDate+"/"+str(yearStatement)
+
 
                             if withdrawlBalances==0:
                                 for k in self.withdrawlKey:

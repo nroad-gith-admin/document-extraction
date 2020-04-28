@@ -15,6 +15,8 @@ from tabular_info_extraction.pnc_table_info import TablePNCInfoExtraction
 from tabular_info_extraction.pnc_extraction_summary import PNCExtractSum
 
 from negative_days.negative_days import negative_days_count
+from ach_debits.ach_debits import ACHDebits
+
 
 class PNCBankExtraction:
 
@@ -26,6 +28,7 @@ class PNCBankExtraction:
         self.boaSummaryExtraction = BOAExtractSum()
         self.tableInfoExtImg = TablePNCInfoExtraction()
         self.pncSummaryExtraction = PNCExtractSum()
+        self.achDebitObj = ACHDebits()
 
     def isBankStatement(self,data):
         if not isinstance(data, str):
@@ -84,6 +87,7 @@ class PNCBankExtraction:
 
             employerNames, employeeName, ccProviders, directDepositAmounts = self.pncSummaryExtraction.extract_summ_info(summdata)
             negativeDayeCount = negative_days_count(additionData, deductionData, begBalance)
+            isAchDebit = self.achDebitObj.is_ach(additionData, deductionData, 1)
 
             new_s = {}
             for k, v in data.items():
@@ -91,7 +95,10 @@ class PNCBankExtraction:
                 all_k = [i for i, j in v.items() if j == max_val]
                 new_s[k] = ",".join(all_k)
             data =  new_s
-
+            if lenData>10:
+                atleast10trans = 'YES'
+            else:
+                atleast10trans = 'NO'
         except Exception as e:
             raise Exception("Failed to extract data. Reason: "+str(e))
 
@@ -141,8 +148,9 @@ class PNCBankExtraction:
             BankData["directDeposits"] = (deposits)
             BankData["SummaryInfo"] = (summdata)
             BankData["NegativeDaysCount"] = (negativeDayeCount)
-            BankData["atLeastTenTransactions"] =lenData>10
+            BankData["atLeastTenTransactions"] =atleast10trans
             # BankData["uniqueId"] = self.extractUniqueID(pdfFile)
+            BankData["isACHDebit"] = isAchDebit
 
 
             BankData = check_all(BankData)
@@ -207,7 +215,8 @@ class PNCBankExtraction:
             sheet.write(excelRow, 22,  BankData["EmployeeNames"])
             sheet.write(excelRow, 23,  BankData["EmployersName"])
             sheet.write(excelRow, 24,  BankData["CCProviders"])
-            sheet.write(excelRow, 25,  '')
+            sheet.write(excelRow, 25,  BankData['isACHDebit'])
+
             sheet.write(excelRow, 26,  lenData>10)
 
             # sheet.write(excelRow, 13, str(data["SummaryInfo"]))

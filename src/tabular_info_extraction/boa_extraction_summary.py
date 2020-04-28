@@ -102,12 +102,12 @@ class BOAExtractSum:
 
 
                         if len(desplited) >0:
-                            employerName.append(desplited[0].strip())
+                            employerName.append(desplited[0].strip().replace("des:","").replace("des",""))
                             directDepositAmounts.append(self.__format_amount__(str(desVal[1])))
 
                             desplited = [j for i in desplited for j in i.split() if "INDN:".lower() in j]
                             if len(desplited)>0:
-                                employeeName.extend(desplited[0].replace("INDN:".lower(),"").strip().split(","))
+                                employeeName.extend(desplited[0].replace("INDN:".lower(),"").replace("des:","").replace("des","").strip().split(","))
                             break
 
         if 'payroll' in summ:
@@ -119,6 +119,7 @@ class BOAExtractSum:
                         desplited = des.split(k)
                         if len(desplited) >0:
                             payrollEmployerName.append(desplited[0].strip())
+                            break
 
 
         if 'credit card' in summ:
@@ -132,8 +133,8 @@ class BOAExtractSum:
                     if re.search(r"\b" + wordsMatched.lower() + r"\b", newdes.lower()):
                         desSplitted = newdes.split(wordsMatched)
                         if len(desSplitted)>0:
-                            creditCardProvider.append(desSplitted[0].strip())
-                            break
+                            creditCardProvider.append(desSplitted[0].strip().replace("des:","").replace("des",""))
+                            # break
 
         directDepositAmounts = sum(directDepositAmounts)
         return ", ".join(list(set(employerName))), ", ".join(list(set(employeeName))), ", ".join(list(set(creditCardProvider))),directDepositAmounts

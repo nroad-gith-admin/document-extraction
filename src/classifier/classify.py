@@ -218,8 +218,17 @@ def extractData(pdfPath, documentId):
         #     data = electronicsPdfObj.read_page("all")
         #
         # else:
-        data = (convert_pdf_images(pdfPath, [0,1,2], documentId))
+        # data = (convert_pdf_images(pdfPath, [0,1,2], documentId))
         folderDataPath = os.path.join(os.getcwd(), "data", str(documentId))
+        if not os.path.isdir(folderDataPath):
+            data = (convert_pdf_images(pdfPath, [0,1,2], documentId))
+        else:
+            data=[]
+            fileslist = os.listdir(folderDataPath)
+            for filel in fileslist:
+                with open(os.path.join(folderDataPath,filel)) as f:
+                    data.append(json.load(f))
+
         # data = " ".join(data).lower()
         # data = data.replace("\n"," ")
         isw2Data = isW2(data)
@@ -246,9 +255,9 @@ def extractData(pdfPath, documentId):
 
 if __name__=="__main__":
     import csv
-    filepath=r"/Users/prasingh/Prashant/Prashant/CareerBuilder/Extraction/data/BS_NT/BS_PNC"
+    filepath=r"/Users/prasingh/Prashant/Prashant/CareerBuilder/Extraction/data/BS_Batch1"
 
-    csvwriter = csv.writer(open("USCLASS.csv","w",newline=""))
+    csvwriter = csv.writer(open("Batch1Res2.csv","w",newline=""))
     files= os.listdir(filepath)
     for i, f in enumerate(files):
         print(f)
@@ -256,7 +265,7 @@ if __name__=="__main__":
         d = extractData(os.path.join(filepath,f),f.replace(".pdf",""))
         print(d)
         if 'documentType' in d:
-            csvwriter.writerow((f,d['documentType'],d['pageNum']))
+            csvwriter.writerow((f,d['documentType'],d['pageNum'],d['params']))
         else:
             csvwriter.writerow((f,None))
         print("------------------------------------")

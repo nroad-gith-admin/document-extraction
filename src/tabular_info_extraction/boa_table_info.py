@@ -36,8 +36,8 @@ try:
 
     accountTypeKey = (config_obj.get("BOA", "accountTypeKey"))
     accountTypeKey = accountTypeKey.split(",")
-    accountTypeKey = [i.replace(":",",") for i in accountTypeKey]
-
+    # accountTypeKey = [i.replace(":",",") for i in accountTypeKey]
+    accountTypeKey.sort(key=lambda x:len(x),reverse=True)
 except Exception as e:
     raise Exception("Config file error: " + str(e))
 
@@ -97,7 +97,7 @@ class TableBOAInfoExtraction:
 
         try:
 
-
+            self.yearFormat = {"jan":1,"feb":2,"mar":3,"apr":4,"may":5,"june":6,"july":7,"aug":8,"sep":9,"oct":10,"nov":11,"dec":12}
             self.deposits =[str(i[5]).strip() for i in keywordList if str(i[5]) !='nan']
             self.deposits = list(set(self.deposits))
 
@@ -156,6 +156,23 @@ class TableBOAInfoExtraction:
 
         return val
 
+    def __format__date(self, date):
+        year = date.split(",")[-1]
+        for years in range(2010,2030):
+            if str(years) in date:
+                year = years
+                break
+        monthDay = date.split(",")[0]
+        monthDay = monthDay.strip()
+        month = monthDay.split()[0]
+        day = monthDay.split()[-1]
+        for k, v in self.yearFormat.items():
+            if k in month.lower():
+                month = v
+                break
+
+        return str(str(month)+"/"+str(day)+"/"+str(year))
+
     def getTableInfo(self, filepath, descriptionCol, depositCol, withdrawCol,edge_tol=85):
         depositAmount = 0
         averageBalance = 0
@@ -163,7 +180,7 @@ class TableBOAInfoExtraction:
         endBalance = 0
         endDate = ""
         withdrawlBalances = []
-        accountType = {}
+        accountType = ""
 
         try:
             pdf = PdfFileReader(open(filepath, 'rb'))
@@ -267,19 +284,26 @@ class TableBOAInfoExtraction:
                                         words = [i for i in words if self.isAmount(i)==True]
                                         endBalance = self.__format_amount__(words[0])
                                         endDate = " ".join(d1).lower().replace(k.lower(),"").replace(words[0],"").strip()
+                                        endDate = self.__format__date(endDate)
                             # if accountType == "":
                             w = " ".join(d1)
                             for accountTypeKeys in self.accountTypeKey:
-                                accountTypeKeys = accountTypeKeys.split(",")
-                                flags = [accountKey in w for accountKey in accountTypeKeys]
-                                if False not in flags:
-                                    accountTypeVal = re.search(accountTypeKeys[0] + "(.*)" + accountTypeKeys[1], w)
-                                    if len(accountTypeVal.group(1).strip().split())<3:
-                                        try:
-                                            accountType[accountTypeVal.group(1).strip()] = accountType[accountTypeVal.group(1).strip()]+1
-                                        except:
-                                            accountType[accountTypeVal.group(1).strip()] = 1
-                                        break
+                                if accountTypeKeys.lower() in " ".join(d1).lower():
+                                    # splittedWords = dataRow.split(keys)
+                                    # splittedWords = [i for i in splittedWords if i.strip() != '']
+                                    accountType = accountTypeKeys
+                                    break
+                                # accountTypeKeys = accountTypeKeys.split(",")
+                                # flags = [accountKey in w for accountKey in accountTypeKeys]
+                                # if False not in flags:
+                                #     accountTypeVal = re.search(accountTypeKeys[0] + "(.*)" + accountTypeKeys[1], w)
+                                #     if accountTypeVal!=None:
+                                #         if len(accountTypeVal.group(1).strip().split())<3:
+                                #             try:
+                                #                 accountType[accountTypeVal.group(1).strip()] = accountType[accountTypeVal.group(1).strip()]+1
+                                #             except:
+                                #                 accountType[accountTypeVal.group(1).strip()] = 1
+                                #             break
 
                             for k in self.withdrawlKey:
                                 if " ".join(d1).lower().startswith(k.lower()):
@@ -297,7 +321,8 @@ class TableBOAInfoExtraction:
             raise Exception("Something messed up. Reason: "+str(e))
 
         withdrawlBalances = sum(withdrawlBalances)
-        return depositAmount, averageBalance, begBalance, endBalance, withdrawlBalances, endDate,", ".join(accountType.keys())
+        withdrawlBalances = float(str(withdrawlBalances).replace("-","").strip())
+        return depositAmount, averageBalance, begBalance, endBalance, withdrawlBalances, endDate,accountType
 
 if __name__=="__main__":
     tableInfoObj = TableBOAInfoExtraction()
@@ -306,30 +331,32 @@ if __name__=="__main__":
     # filepath  = r'/Users/prasingh/Prashant/Prashant/CareerBuilder/Extraction/data/BankStatements2/006am4O00000aDJ3zQAG-00P4O00001IbjsmUAB-Pat May BS.pdf'
     filepath  = r'/Users/prasingh/Prashant/Prashant/CareerBuilder/Extraction/data/NEW_BANK/other bank/BB_T BANK/0064O00000k74XZQAY-00P4O00001Jjt9dUAB-Bank Statement.pdf'
     filepath = r"/Users/prasingh/Prashant/Prashant/CareerBuilder/Extraction/data/BS_NT/BS_BOA_Test"
-    filepath = r"/Users/prasingh/Prashant/Prashant/CareerBuilder/Extraction/data/BS_NT/BS_BOA/0064O00000k7RiOQAU-00P4O00001KTl0PUAT-__last_60_days_of_bank_stateme.pdf"
-    # payroll_amounts, cc_amounts, loan_amounts, depositAmount, averageDailyBalance, beg, end, withdraw, summdata = tableInfoObj.getTableInfo(
-    #     os.path.join(filepath), 1, 2, 2)
-    # print("payroll: ",payroll_amounts)
-    # print("credit card: ",cc_amounts)
-    # print("loan amounts: ",loan_amounts)
-    # print("beg amounts: ",beg)
-    # print("end amounts: ",end)
-    # print("with amounts: ",withdraw)
+    filepath = r"/Users/prasingh/Prashant/Prashant/CareerBuilder/Extraction/data/BS_Batch1/0064O00000jtGT2QAM-00P4O00001IbVZpUAN-eStmt_2019-08-30.pdf"
+    depositAmount, averageDailyBalance, beg, end, withdraw, endDate, accounttype = tableInfoObj.getTableInfo(
+        filepath, 1, 2, 2)
+    print("beg amounts: ", beg)
+    print("end amounts: ", end)
+    print("with amounts: ", withdraw)
+    print("end date: ", endDate)
+    print("accounttype: ", accounttype)
+    print("depositAmount: ", depositAmount)
+    print("averageDailyBalance: ", averageDailyBalance)
+    print("-------------------------")
 
 
-    folderpath = r"/Users/prasingh/Prashant/Prashant/CareerBuilder/Extraction/data/BS_NT/BS_BOA/"
-
-    for file in os.listdir(folderpath):
-        print(file)
-        filepath = os.path.join(folderpath, file)
-        depositAmount, averageDailyBalance, beg, end, withdraw, endDate,accounttype = tableInfoObj.getTableInfo(
-            os.path.join(filepath), 1, 2, 2)
-        print("beg amounts: ", beg)
-        print("end amounts: ", end)
-        print("with amounts: ", withdraw)
-        print("end date: ", endDate)
-        print("accounttype: ", accounttype)
-        print("depositAmount: ", depositAmount)
-        print("averageDailyBalance: ", averageDailyBalance)
-        print("-------------------------")
+    # folderpath = r"/Users/prasingh/Prashant/Prashant/CareerBuilder/Extraction/data/BS_NT/BS_BOA/"
+    #
+    # for file in os.listdir(folderpath):
+    #     print(file)
+    #     filepath = os.path.join(folderpath, file)
+    #     depositAmount, averageDailyBalance, beg, end, withdraw, endDate,accounttype = tableInfoObj.getTableInfo(
+    #         os.path.join(filepath), 1, 2, 2)
+    #     print("beg amounts: ", beg)
+    #     print("end amounts: ", end)
+    #     print("with amounts: ", withdraw)
+    #     print("end date: ", endDate)
+    #     print("accounttype: ", accounttype)
+    #     print("depositAmount: ", depositAmount)
+    #     print("averageDailyBalance: ", averageDailyBalance)
+    #     print("-------------------------")
         # break
